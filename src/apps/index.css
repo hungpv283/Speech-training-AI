@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply font-sans;
+  }
+  
+  body {
+    font-family: 'Inter', 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'kern' 1;
+    text-rendering: optimizeLegibility;
+    letter-spacing: -0.01em;
+    line-height: 1.6;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Poppins', 'Inter', sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+  }
+  
+  button, .ant-btn {
+    font-family: 'Inter', 'Poppins', sans-serif;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  
+  input, textarea, select {
+    font-family: 'Inter', 'Poppins', sans-serif;
+    letter-spacing: -0.01em;
+  }
+  
+  p, span, div {
+    letter-spacing: -0.01em;
+  }
+  
+  /* Ant Design Typography overrides */
+  .ant-typography {
+    font-family: 'Inter', 'Poppins', sans-serif !important;
+    letter-spacing: -0.01em !important;
+  }
+  
+  .ant-typography h1,
+  .ant-typography h2,
+  .ant-typography h3,
+  .ant-typography h4,
+  .ant-typography h5,
+  .ant-typography h6 {
+    font-family: 'Poppins', 'Inter', sans-serif !important;
+    letter-spacing: -0.02em !important;
+  }
+}
