@@ -173,7 +173,7 @@ export const fetchUsers = createAsyncThunk<
   if (toDate) queryParams.toDate = toDate;
   if (email) queryParams.email = email;
 
-  const response = await axiosInstance.get("users", {
+  const response = await axiosInstance.get("users-new", {
     params: queryParams,
   });
   const data = response.data;
@@ -278,7 +278,7 @@ export const searchUserByEmail = createAsyncThunk<
   SearchUserByEmailResponse,
   SearchUserByEmailParams
 >("user/searchUserByEmail", async (params) => {
-  const response = await axiosInstance.get("users/search/by-email", {
+  const response = await axiosInstance.get("users-new/search/by-email", {
     params: { email: params.email },
   });
   return response.data as SearchUserByEmailResponse;
@@ -298,7 +298,7 @@ export interface CreateUserResponse {
 export const createUser = createAsyncThunk(
   "user/createUser",
   async (userData: CreateUserRequest): Promise<CreateUserResponse> => {
-    const response = await axiosInstance.post<CreateUserResponse>("users", {
+    const response = await axiosInstance.post<CreateUserResponse>("users-new", {
       email: userData.email,
       gender: userData.gender === "male" ? "Male" : "Female", // Convert to capitalized format
     });
@@ -308,7 +308,7 @@ export const createUser = createAsyncThunk(
 export const deleteUser = createAsyncThunk(
   "user/deleteUser",
   async (personId: string): Promise<{ personId: string }> => {
-    await axiosInstance.delete(`users/${personId}`);
+    await axiosInstance.delete(`users-new/${personId}`);
     return { personId };
   }
 );
@@ -317,7 +317,7 @@ export const fetchTopContributors = createAsyncThunk(
   "user/fetchTopContributors",
   async (): Promise<TopContributor[]> => {
     // Fetch top contributors from the dedicated endpoint
-    const response = await axiosInstance.get("users/top-contributors", {
+    const response = await axiosInstance.get("users-new/top-contributors", {
       params: { page: 1, limit: 10 },
     });
     const data = response.data;
@@ -393,7 +393,7 @@ export const fetchTopContributorsPaginated = createAsyncThunk<
   const page = params?.page ?? 1;
   const limit = params?.limit ?? 20;
   // Call the new top-contributors endpoint with pagination
-  const response = await axiosInstance.get("users/top-contributors", {
+  const response = await axiosInstance.get("users-new/top-contributors", {
     params: { page, limit },
   });
   const data = response.data;
@@ -466,7 +466,7 @@ export const fetchAvailableSentences = createAsyncThunk(
   async (_personId: string): Promise<AvailableSentence[]> => {
     try {
       // Call the new API endpoint directly
-      const response = await axiosInstance.get("sentences/approved-without-recordings", {
+      const response = await axiosInstance.get("sentences-new/approved-without-recordings", {
         params: { page: 1, limit: 20 }
       });
       

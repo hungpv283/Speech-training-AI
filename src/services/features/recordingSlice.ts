@@ -46,7 +46,7 @@ export interface PaginatedParams {
 
 export const getSentences = async (): Promise<Sentence[]> => {
   try {
-    const response = await axiosInstance.get("sentences");
+    const response = await axiosInstance.get("sentences-new");
     const data = response.data;
     // Handle both direct array and nested data structure
     if (Array.isArray(data)) {
@@ -75,7 +75,7 @@ export const getSentencesWithMeta = async (
     if (params?.status !== null && params?.status !== undefined) {
       requestParams.status = params.status;
     }
-    const response = await axiosInstance.get("sentences", {
+    const response = await axiosInstance.get("sentences-new", {
       params: requestParams,
     });
     const data = response.data;
@@ -499,7 +499,7 @@ export const getTopRecorders = async (
 ): Promise<TopRecorder[]> => {
   try {
     const response = await axiosInstance.get<TopRecordersResponse>(
-      "users/top-recorders",
+      "users-new/top-recorders",
       {
         params: {
           status: params?.status,
