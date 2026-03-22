@@ -125,7 +125,7 @@ export const getSentencesWithMeta = async (
 
 export const getRecordings = async (): Promise<Recording[]> => {
   try {
-    const response = await axiosInstance.get("recordings");
+    const response = await axiosInstance.get("recordings-new");
     const data = response.data;
     // Handle both direct array and nested data structure
     if (Array.isArray(data)) {
@@ -158,7 +158,7 @@ export const getRecordingsWithMeta = async (
     if (params?.email && params.email.trim() !== '') {
       requestParams.email = params.email.trim();
     }
-    const response = await axiosInstance.get("recordings", {
+    const response = await axiosInstance.get("recordings-new", {
       params: requestParams,
     });
     const data = response.data;
@@ -225,7 +225,7 @@ export const getRecordingsByStatus = async (
       isApproved: number;
       count: number;
       data: Recording[];
-    }>(`recordings/status/${status}`);
+    }>(`recordings-new/status/${status}`);
     return Array.isArray(response.data.data) ? response.data.data : [];
   } catch (error: any) {
     console.error("Error fetching recordings by status:", error);
@@ -276,7 +276,7 @@ export const uploadRecording = async (
     formData.append("sentenceId", sentenceId);
 
     const response = await axiosInstance.post<UploadRecordingResponse>(
-      "recordings",
+      "recordings-new",
       formData,
       {
         headers: {
@@ -308,7 +308,7 @@ export const updateSentence = async (
 ): Promise<Sentence> => {
   try {
     const response = await axiosInstance.put<Sentence>(
-      `sentences/${sentenceId}`,
+      `sentences-new/${sentenceId}`,
       { content }
     );
     return response.data;
@@ -319,7 +319,7 @@ export const updateSentence = async (
 
 export const deleteSentence = async (sentenceId: string): Promise<void> => {
   try {
-    await axiosInstance.delete(`sentences/${sentenceId}`);
+    await axiosInstance.delete(`sentences-new/${sentenceId}`);
   } catch (error: any) {
     throw error.response?.data || { message: "Delete sentence failed" };
   }
@@ -331,7 +331,7 @@ export const approveSentence = async (
 ): Promise<Sentence> => {
   try {
     const response = await axiosInstance.patch<Sentence>(
-      `sentences/${sentenceId}/approve`
+      `sentences-new/${sentenceId}/approve`
     );
     return response.data;
   } catch (error: any) {
@@ -342,7 +342,7 @@ export const approveSentence = async (
 export const rejectSentence = async (sentenceId: string): Promise<Sentence> => {
   try {
     const response = await axiosInstance.patch<Sentence>(
-      `sentences/${sentenceId}/reject`
+      `sentences-new/${sentenceId}/reject`
     );
     return response.data;
   } catch (error: any) {
@@ -356,7 +356,7 @@ export const approveRecording = async (
 ): Promise<Recording> => {
   try {
     const response = await axiosInstance.patch<Recording>(
-      `recordings/${recordingId}/approve`
+      `recordings-new/${recordingId}/approve`
     );
     return response.data;
   } catch (error: any) {
@@ -369,7 +369,7 @@ export const rejectRecording = async (
 ): Promise<Recording> => {
   try {
     const response = await axiosInstance.patch<Recording>(
-      `recordings/${recordingId}/reject`
+      `recordings-new/${recordingId}/reject`
     );
     return response.data;
   } catch (error: any) {
@@ -380,7 +380,7 @@ export const rejectRecording = async (
 // Delete Recording
 export const deleteRecording = async (recordingId: string): Promise<void> => {
   try {
-    await axiosInstance.delete(`recordings/${recordingId}`);
+    await axiosInstance.delete(`recordings-new/${recordingId}`);
   } catch (error: any) {
     throw error.response?.data || { message: "Delete recording failed" };
   }
@@ -408,7 +408,7 @@ export const createUserSentence = async (
 ): Promise<CreateUserSentenceResponse> => {
   try {
     const response = await axiosInstance.post<CreateUserSentenceResponse>(
-      "sentences/user",
+      "sentences-new/user",
       request
     );
     return response.data;
@@ -427,7 +427,7 @@ export const downloadSentences = async (
   params?: DownloadSentencesParams
 ): Promise<Blob> => {
   try {
-    const response = await axiosInstance.get<Blob>("sentences/download", {
+    const response = await axiosInstance.get<Blob>("sentences-new/download", {
       params: {
         mode: params?.mode || "with-audio",
         status: params?.status,
@@ -453,7 +453,7 @@ export const downloadRecordings = async (
   params: DownloadRecordingsParams
 ): Promise<Blob> => {
   try {
-    const response = await axiosInstance.get<Blob>("recordings/download", {
+    const response = await axiosInstance.get<Blob>("recordings-new/download", {
       params: {
         emails: params.emails.join(','),
         dateFrom: params.dateFrom,
