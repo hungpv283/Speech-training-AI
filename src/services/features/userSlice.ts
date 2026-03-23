@@ -298,7 +298,7 @@ export interface CreateUserResponse {
 export const createUser = createAsyncThunk(
   "user/createUser",
   async (userData: CreateUserRequest): Promise<CreateUserResponse> => {
-    const response = await axiosInstance.post<CreateUserResponse>("users-new", {
+    const response = await axiosInstance.post<CreateUserResponse>("users", {
       email: userData.email,
       gender: userData.gender === "male" ? "Male" : "Female", // Convert to capitalized format
     });
@@ -308,7 +308,7 @@ export const createUser = createAsyncThunk(
 export const deleteUser = createAsyncThunk(
   "user/deleteUser",
   async (personId: string): Promise<{ personId: string }> => {
-    await axiosInstance.delete(`users-new/${personId}`);
+    await axiosInstance.delete(`users/${personId}`);
     return { personId };
   }
 );
@@ -317,7 +317,7 @@ export const fetchTopContributors = createAsyncThunk(
   "user/fetchTopContributors",
   async (): Promise<TopContributor[]> => {
     // Fetch top contributors from the dedicated endpoint
-    const response = await axiosInstance.get("users-new/top-contributors", {
+    const response = await axiosInstance.get("users/top-contributors", {
       params: { page: 1, limit: 10 },
     });
     const data = response.data;
