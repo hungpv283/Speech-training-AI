@@ -77,8 +77,18 @@ export interface TopContributor {
 export interface AvailableSentence {
   SentenceID: string;
   Content: string;
+  /** Plain text for UI; falls back to Content if missing (older API). */
+  PlainText?: string | null;
   CreatedAt: string;
   Status: number;
+}
+
+export function getSentenceDisplayText(s: {
+  Content: string;
+  PlainText?: string | null;
+}): string {
+  const t = s.PlainText?.trim();
+  return t ? t : s.Content;
 }
 
 interface UserState {
@@ -479,6 +489,7 @@ export const fetchAvailableSentences = createAsyncThunk(
       return sentences.map((s: any) => ({
         SentenceID: s.SentenceID,
         Content: s.Content,
+        PlainText: s.PlainText ?? null,
         CreatedAt: s.CreatedAt,
         Status: s.Status,
       }));
@@ -580,7 +591,7 @@ const userSlice = createSlice({
         state.availableSentences = action.payload;
         // Set first available sentence as current if available
         if (action.payload.length > 0 && !state.currentSentence) {
-          state.currentSentence = action.payload[0].Content;
+          state.currentSentence = getSentenceDisplayText(action.payload[0]);
           state.currentSentenceId = action.payload[0].SentenceID;
         }
       })
