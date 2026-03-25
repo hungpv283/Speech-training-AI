@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Typography, Table, Button, Space, Spin, Empty, Modal, Form, Input, message, Popconfirm, Row, Col, Tag, Select } from 'antd';
-import { FileTextOutlined, CheckCircleOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CloseCircleOutlined, DownloadOutlined } from '@ant-design/icons';
+import { FileTextOutlined, CheckCircleOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CloseCircleOutlined, DownloadOutlined, ImportOutlined } from '@ant-design/icons';
 import Sidebar from '@/components/Sidebar';
-import { getSentencesWithMeta, createSentence, updateSentence, deleteSentence, approveSentence, rejectSentence, downloadSentences, Sentence } from '@/services/features/recordingSlice';
+import { getSentencesWithMeta, createSentence, updateSentence, deleteSentence, approveSentence, rejectSentence, downloadSentences, uploadSentenceImport, Sentence } from '@/services/features/recordingSlice';
+import { getSentenceDisplayText } from '@/services/features/userSlice';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -21,6 +22,8 @@ const ManagerSentences: React.FC = () => {
   const [pendingCountFromApi, setPendingCountFromApi] = useState<number | null>(null);
   const [recordedCountFromApi, setRecordedCountFromApi] = useState<number | null>(null);
   const [rejectedCountFromApi, setRejectedCountFromApi] = useState<number | null>(null);
+  const [importingJson, setImportingJson] = useState(false);
+  const jsonImportInputRef = useRef<HTMLInputElement>(null);
   const [form] = Form.useForm();
 
   useEffect(() => {
@@ -209,12 +212,35 @@ const ManagerSentences: React.FC = () => {
     setEditingSentence(null);
   };
 
+  const handleImportJsonClick = () => {
+    jsonImportInputRef.current?.click();
+  };
+
+  const handleJsonFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setImportingJson(true);
+    try {
+      await uploadSentenceImport(file);
+      message.success('Import file thành công');
+      fetchSentences(page, pageSize, statusFilter);
+    } catch (err: unknown) {
+      const errObj = err as { message?: string };
+      message.error(errObj?.message ?? 'Import file thất bại');
+    } finally {
+      setImportingJson(false);
+    }
+  };
+
   const sentenceColumns = [
     {
       title: 'Nội dung',
-      dataIndex: 'Content',
       key: 'Content',
-      render: (text: string) => <span className="text-gray-900">{text}</span>,
+      render: (_: unknown, record: Sentence) => (
+        <span className="text-gray-900">{getSentenceDisplayText(record)}</span>
+      ),
     },
     {
       title: 'Hành động',
@@ -452,6 +478,22 @@ const ManagerSentences: React.FC = () => {
                     className="bg-green-50 hover:bg-green-100 border-green-300 text-green-600"
                   >
                     Tải câu đã duyệt
+                  </Button>
+                  <input
+                    ref={jsonImportInputRef}
+                    type="file"
+                    accept=".json,application/json"
+                    className="hidden"
+                    onChange={handleJsonFileChange}
+                  />
+                  <Button
+                    icon={<ImportOutlined />}
+                    onClick={handleImportJsonClick}
+                    loading={importingJson}
+                    disabled={importingJson}
+                    className="border-violet-300 text-violet-700 hover:border-violet-400 hover:text-violet-800 bg-violet-50"
+                  >
+                    Import JSON
                   </Button>
                   <Button
                     type="primary"
