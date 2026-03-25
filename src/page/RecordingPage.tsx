@@ -11,7 +11,8 @@ import {
   setIsRecording,
   setRecordingTime,
   fetchAvailableSentences,
-  resetUserState
+  resetUserState,
+  getSentenceDisplayText,
 } from '@/services/features/userSlice';
 import { uploadRecording, createUserSentence, updateSentence } from '@/services/features/recordingSlice';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
@@ -72,7 +73,7 @@ const RecordingPage: React.FC = () => {
   // Update current sentence when availableSentences changes
   useEffect(() => {
     if (availableSentences && availableSentences.length > 0 && mode === 'existing' && !currentSentence) {
-      dispatch(setCurrentSentence(availableSentences[0].Content));
+      dispatch(setCurrentSentence(getSentenceDisplayText(availableSentences[0])));
       dispatch(setCurrentSentenceId(availableSentences[0].SentenceID));
     }
   }, [availableSentences, mode, currentSentence, dispatch]);
@@ -149,7 +150,7 @@ const RecordingPage: React.FC = () => {
           if (updatedSentences.length > 0) {
             // Move to next available sentence
             const nextSentence = updatedSentences[0];
-            dispatch(setCurrentSentence(nextSentence.Content));
+            dispatch(setCurrentSentence(getSentenceDisplayText(nextSentence)));
             dispatch(setCurrentSentenceId(nextSentence.SentenceID));
             dispatch(setCurrentRecordingIndex(newRecordingIndex + 1));
           } else {
@@ -228,10 +229,10 @@ const RecordingPage: React.FC = () => {
     setSavingSentenceEdit(true);
     try {
       const res = await updateSentence(currentSentenceId, nextValue);
+      const resAny = res as { PlainText?: string | null; Content?: string; content?: string };
       const updatedContent =
-        (res as any)?.Content ??
-        (res as any)?.content ??
-        nextValue;
+        (typeof resAny.PlainText === 'string' && resAny.PlainText.trim()) ||
+        (resAny.Content ?? resAny.content ?? nextValue);
       dispatch(setCurrentSentence(updatedContent));
       message.success('Đã cập nhật câu thành công');
       setIsEditSentenceModalOpen(false);

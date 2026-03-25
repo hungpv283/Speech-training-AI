@@ -3,6 +3,7 @@ import axiosInstance from "@/services/constant/axiosInstance";
 export interface Sentence {
   SentenceID: string;
   Content: string;
+  PlainText?: string | null;
   CreatedAt: string;
   Status: number;
 }
