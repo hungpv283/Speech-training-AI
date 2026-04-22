@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Typography,
   Table,
@@ -38,6 +38,7 @@ import {
   Recording,
 } from '@/services/features/recordingSlice';
 import axiosInstance from '@/services/constant/axiosInstance';
+import { BASE_URL } from '@/services/constant/apiConfig';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -46,7 +47,7 @@ const ManagerRecords: React.FC = () => {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loadingRecordings, setLoadingRecordings] = useState(true);
   const [playingId, setPlayingId] = useState<string | null>(null);
-  const [recordingStatusFilter, setRecordingStatusFilter] = useState<number | null>(null);
+  const [recordingStatusFilter, setRecordingStatusFilter] = useState<number | undefined>(undefined);
   const [emailSearch, setEmailSearch] = useState<string>('');
   const [downloading, setDownloading] = useState(false);
   const [page, setPage] = useState(1);
@@ -62,6 +63,17 @@ const ManagerRecords: React.FC = () => {
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editingSentenceId, setEditingSentenceId] = useState<string | null>(null);
   const [form] = Form.useForm();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     setPage(1);
@@ -82,7 +94,7 @@ const ManagerRecords: React.FC = () => {
       const res = await getRecordingsWithMeta({
         page: pageParam,
         limit: limitParam,
-        isApproved: status !== null && status !== undefined ? status : undefined,
+        isApproved: status !== undefined ? status : undefined,
         email: email && email.trim() !== '' ? email.trim() : undefined,
       });
       setRecordings(res.data);
@@ -109,16 +121,63 @@ const ManagerRecords: React.FC = () => {
     }
   };
 
-  const handlePlay = (audioUrl: string | null, id: string) => {
-    if (!audioUrl) return;
+  const handlePlay = async (audioUrl: string | null, id: string) => {
+    if (!audioUrl) {
+      message.warning('Không có file âm thanh cho bản ghi này');
+      return;
+    }
 
+    // Stop current audio if it's the same one
     if (playingId === id) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
       setPlayingId(null);
-    } else {
+      return;
+    }
+
+    // Stop previous audio if exists
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+
+    try {
+      // Normalize URL if relative
+      let fullUrl = audioUrl;
+      if (!audioUrl.startsWith('http')) {
+        try {
+          const origin = new URL(BASE_URL).origin;
+          fullUrl = audioUrl.startsWith('/') ? `${origin}${audioUrl}` : `${origin}/${audioUrl}`;
+        } catch (e) {
+          console.error('Failed to parse BASE_URL:', e);
+        }
+      }
+
       setPlayingId(id);
-      const audio = new Audio(audioUrl);
-      audio.onended = () => setPlayingId(null);
-      audio.play();
+      console.log('Playing audio from:', fullUrl);
+      const audio = new Audio(fullUrl);
+      audioRef.current = audio;
+
+      audio.onended = () => {
+        setPlayingId(null);
+        audioRef.current = null;
+      };
+
+      audio.onerror = (e) => {
+        console.error('Audio playback error:', e);
+        message.error('Không thể phát tập tin âm thanh này. File có thể bị lỗi hoặc không tồn tại.');
+        setPlayingId(null);
+        audioRef.current = null;
+      };
+
+      await audio.play();
+    } catch (error) {
+      console.error('Failed to play audio:', error);
+      message.error('Lỗi khi phát âm thanh');
+      setPlayingId(null);
+      audioRef.current = null;
     }
   };
 
@@ -343,17 +402,17 @@ const ManagerRecords: React.FC = () => {
   const approvedCount =
     approvedCountFromApi !== null
       ? approvedCountFromApi
-      : recordings.filter((r) => r.IsApproved === 1 || r.IsApproved === true).length;
+      : recordings.filter((r: Recording) => r.IsApproved === 1 || r.IsApproved === true).length;
   const pendingRecordings =
     pendingCountFromApi !== null
       ? pendingCountFromApi
       : recordings.filter(
-          (r) => r.IsApproved === 0 || r.IsApproved === false || r.IsApproved === null
+          (r: Recording) => r.IsApproved === 0 || r.IsApproved === false || r.IsApproved === null
         ).length;
   const rejectedCount =
     rejectedCountFromApi !== null
       ? rejectedCountFromApi
-      : recordings.filter((r) => r.IsApproved === 2).length;
+      : recordings.filter((r: Recording) => r.IsApproved === 2).length;
 
   return (
     <div className="flex">
@@ -458,7 +517,7 @@ const ManagerRecords: React.FC = () => {
                     value={recordingStatusFilter}
                     onChange={setRecordingStatusFilter}
                     options={[
-                      { label: 'Tất cả', value: null },
+                      { label: 'Tất cả', value: undefined },
                       { label: 'Chờ duyệt', value: 0 },
                       { label: 'Đã duyệt', value: 1 },
                       { label: 'Bị từ chối', value: 2 },
@@ -509,9 +568,7 @@ const ManagerRecords: React.FC = () => {
                   size="small"
                   columns={recordingColumns}
                   dataSource={recordings}
-                  rowKey={(record, index) =>
-                    `${record.RecordingID}-${index}-${refreshKey}`
-                  }
+                  rowKey={(record: Recording) => `${record.RecordingID}-${refreshKey}`}
                   pagination={{
                     current: page,
                     pageSize: pageSize,
@@ -519,13 +576,13 @@ const ManagerRecords: React.FC = () => {
                     pageSizeOptions: [10, 20, 50, 100],
                     showSizeChanger: true,
                     showQuickJumper: true,
-                    showTotal: (total, range) =>
+                    showTotal: (total: number, range: [number, number]) =>
                       `${range[0]}-${range[1]} của ${total} bản ghi`,
                     responsive: true,
-                    onChange: (p, size) => {
+                    onChange: (p: number, size: number) => {
                       setPage(p);
                       setPageSize(size);
-                      setRefreshKey((prev) => prev + 1);
+                      setRefreshKey((prev: number) => prev + 1);
                     },
                   }}
                   scroll={{ x: 1300 }}

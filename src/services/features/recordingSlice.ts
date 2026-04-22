@@ -262,6 +262,8 @@ export const uploadRecording = async (
     
     if (mimeType.includes("wav")) {
       fileName = "recording.wav";
+    } else if (mimeType.includes("webm")) {
+      fileName = "recording.webm";
     } else if (mimeType.includes("mp4") || mimeType.includes("m4a")) {
       fileName = "recording.m4a";
     } else if (mimeType.includes("aac")) {
