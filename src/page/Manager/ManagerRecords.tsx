@@ -47,6 +47,7 @@ const ManagerRecords: React.FC = () => {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loadingRecordings, setLoadingRecordings] = useState(true);
   const [playingId, setPlayingId] = useState<string | null>(null);
+  const [playingType, setPlayingType] = useState<'plaintext' | 'content' | null>(null);
   const [recordingStatusFilter, setRecordingStatusFilter] = useState<number | undefined>(undefined);
   const [emailSearch, setEmailSearch] = useState<string>('');
   const [downloading, setDownloading] = useState(false);
@@ -128,12 +129,13 @@ const ManagerRecords: React.FC = () => {
     }
 
     // Stop current audio if it's the same one
-    if (playingId === id) {
+    if (playingId === id && playingType === null) {
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
       }
       setPlayingId(null);
+      setPlayingType(null);
       return;
     }
 
@@ -156,12 +158,14 @@ const ManagerRecords: React.FC = () => {
       }
 
       setPlayingId(id);
+      setPlayingType(null);
       console.log('Playing audio from:', fullUrl);
       const audio = new Audio(fullUrl);
       audioRef.current = audio;
 
       audio.onended = () => {
         setPlayingId(null);
+        setPlayingType(null);
         audioRef.current = null;
       };
 
@@ -169,6 +173,7 @@ const ManagerRecords: React.FC = () => {
         console.error('Audio playback error:', e);
         message.error('Không thể phát tập tin âm thanh này. File có thể bị lỗi hoặc không tồn tại.');
         setPlayingId(null);
+        setPlayingType(null);
         audioRef.current = null;
       };
 
@@ -177,6 +182,73 @@ const ManagerRecords: React.FC = () => {
       console.error('Failed to play audio:', error);
       message.error('Lỗi khi phát âm thanh');
       setPlayingId(null);
+      setPlayingType(null);
+      audioRef.current = null;
+    }
+  };
+
+  // Handle playing specific type (plaintext or content)
+  const handlePlayType = async (audioUrl: string | null, id: string, type: 'plaintext' | 'content') => {
+    if (!audioUrl) {
+      message.warning(`Không có file âm thanh cho bản ${type === 'plaintext' ? 'PlainText' : 'Content'}`);
+      return;
+    }
+
+    // Stop current audio if it's the same one
+    if (playingId === id && playingType === type) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      setPlayingId(null);
+      setPlayingType(null);
+      return;
+    }
+
+    // Stop previous audio if exists
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+
+    try {
+      // Normalize URL if relative
+      let fullUrl = audioUrl;
+      if (!audioUrl.startsWith('http')) {
+        try {
+          const origin = new URL(BASE_URL).origin;
+          fullUrl = audioUrl.startsWith('/') ? `${origin}${audioUrl}` : `${origin}/${audioUrl}`;
+        } catch (e) {
+          console.error('Failed to parse BASE_URL:', e);
+        }
+      }
+
+      setPlayingId(id);
+      setPlayingType(type);
+      console.log(`Playing ${type} audio from:`, fullUrl);
+      const audio = new Audio(fullUrl);
+      audioRef.current = audio;
+
+      audio.onended = () => {
+        setPlayingId(null);
+        setPlayingType(null);
+        audioRef.current = null;
+      };
+
+      audio.onerror = (e) => {
+        console.error('Audio playback error:', e);
+        message.error('Không thể phát tập tin âm thanh này. File có thể bị lỗi hoặc không tồn tại.');
+        setPlayingId(null);
+        setPlayingType(null);
+        audioRef.current = null;
+      };
+
+      await audio.play();
+    } catch (error) {
+      console.error('Failed to play audio:', error);
+      message.error('Lỗi khi phát âm thanh');
+      setPlayingId(null);
+      setPlayingType(null);
       audioRef.current = null;
     }
   };
@@ -299,84 +371,89 @@ const ManagerRecords: React.FC = () => {
     },
     {
       title: 'Nội dung câu',
-      dataIndex: 'Content',
-      key: 'Content',
+      key: 'content',
       width: 400,
-      ellipsis: true,
-      render: (content: string | null | undefined) => {
-        return <span className="text-gray-900">{content || 'Unknown'}</span>;
-      },
+      render: (_: unknown, record: Recording) => (
+        <div className="flex flex-col gap-1">
+          {/* Content version */}
+          {record.Content && (
+            <span className="text-gray-900 text-sm">{record.Content}</span>
+          )}
+          {/* PlainText version */}
+          {record.PlainText && (
+            <span className="text-gray-500 text-sm italic">{record.PlainText}</span>
+          )}
+          {/* Recordings count */}
+          {record.RecordingsCount !== undefined && record.RecordingsCount > 0 && (
+            <span className="text-xs text-gray-400">
+              ({record.RecordingsCount} bản ghi)
+            </span>
+          )}
+        </div>
+      ),
     },
     {
       title: 'Hành động',
       key: 'action',
-      width: 350,
+      width: 280,
       fixed: 'right' as const,
       align: 'center' as const,
-      render: (_: unknown, record: Recording) => (
-        <Space size={2} wrap>
-          <Button
-            type={playingId === record.RecordingID ? 'primary' : 'default'}
-            icon={<PlayCircleOutlined />}
-            size="small"
-            onClick={() => handlePlay(record.AudioUrl, record.RecordingID)}
-            className={`rounded-full ${
-              playingId === record.RecordingID
-                ? 'bg-blue-500 hover:bg-blue-600 border-blue-500'
-                : 'hover:border-blue-400'
-            }`}
-          >
-            {playingId === record.RecordingID ? 'Đang phát' : 'Phát'}
-          </Button>
-          {(record.IsApproved === 0 ||
-            record.IsApproved === false ||
-            record.IsApproved === null) && (
-            <>
+      render: (_: unknown, record: Recording) => {
+        const isPlayingPlaintext = playingId === record.RecordingID && playingType === 'plaintext';
+        const isPlayingContent = playingId === record.RecordingID && playingType === 'content';
+        
+        return (
+          <Space size={2} wrap>
+            {/* Play PlainText button */}
+            {record.AudioPlaintext ? (
               <Button
-                icon={<CheckCircleOutlined />}
+                type={isPlayingPlaintext ? 'primary' : 'default'}
+                icon={<PlayCircleOutlined />}
                 size="small"
-                onClick={() => handleApproveRecording(record.RecordingID)}
-                className="rounded-full bg-blue-500 hover:bg-blue-600 border-blue-500 text-white"
-                style={{ backgroundColor: '#3b82f6', borderColor: '#3b82f6' }}
+                onClick={() => handlePlayType(record.AudioPlaintext!, record.RecordingID, 'plaintext')}
+                className={`rounded-full ${isPlayingPlaintext ? 'bg-blue-500 hover:bg-blue-600 border-blue-500' : 'hover:border-blue-400'}`}
+                style={!isPlayingPlaintext ? { borderColor: '#3b82f6', color: '#3b82f6' } : {}}
               >
-                Duyệt
+                {isPlayingPlaintext ? 'Dừng PT' : 'Phát PT'}
               </Button>
+            ) : (
+              <Tag color="default" className="rounded-full">Chưa có PT</Tag>
+            )}
+            
+            {/* Play Content button */}
+            {record.AudioContent ? (
               <Button
-                danger
-                icon={<CloseCircleOutlined />}
+                type={isPlayingContent ? 'primary' : 'default'}
+                icon={<PlayCircleOutlined />}
                 size="small"
-                onClick={() => handleRejectRecording(record.RecordingID)}
-                className="rounded-full"
+                onClick={() => handlePlayType(record.AudioContent!, record.RecordingID, 'content')}
+                className={`rounded-full ${isPlayingContent ? 'bg-purple-500 hover:bg-purple-600 border-purple-500' : 'hover:border-purple-400'}`}
+                style={!isPlayingContent ? { borderColor: '#9333ea', color: '#9333ea' } : {}}
               >
-                Từ chối
+                {isPlayingContent ? 'Dừng CT' : 'Phát CT'}
               </Button>
-            </>
-          )}
-          {(record.IsApproved === 0 || record.IsApproved === 1) && (
-            <Button
-              icon={<EditOutlined />}
-              size="small"
-              onClick={() => handleOpenEditSentence(record.SentenceID, record.Content)}
-              className="rounded-full bg-orange-500 hover:bg-orange-600 border-orange-500 text-white"
-              style={{ backgroundColor: '#f97316', borderColor: '#f97316' }}
-            >
-              Sửa
-            </Button>
-          )}
-          <Popconfirm
-            title="Xóa recording này?"
-            description="Bạn có chắc chắn muốn xóa recording và sentence này không?"
-            onConfirm={() => handleDeleteRecording(record.RecordingID)}
-            okText="Xóa"
-            cancelText="Hủy"
-            okButtonProps={{ danger: true }}
-          >
-            <Button danger icon={<DeleteOutlined />} size="small" className="rounded-full">
-              Xóa
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
+            ) : (
+              <Tag color="default" className="rounded-full">Chưa có CT</Tag>
+            )}
+            
+            {/* Delete button - only show when not playing */}
+            {playingId !== record.RecordingID && (
+              <Popconfirm
+                title="Xóa recording này?"
+                description="Bạn có chắc chắn muốn xóa recording và sentence này không?"
+                onConfirm={() => handleDeleteRecording(record.RecordingID)}
+                okText="Xóa"
+                cancelText="Hủy"
+                okButtonProps={{ danger: true }}
+              >
+                <Button danger icon={<DeleteOutlined />} size="small" className="rounded-full">
+                  Xóa
+                </Button>
+              </Popconfirm>
+            )}
+          </Space>
+        );
+      },
     },
     {
       title: 'Trạng thái',

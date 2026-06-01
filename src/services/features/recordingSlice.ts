@@ -13,12 +13,17 @@ export interface Recording {
   PersonID: string | null;
   SentenceID: string;
   AudioUrl: string | null;
+  Type?: 'plaintext' | 'content' | null; // Type of this recording
   IsApproved: number | boolean | null;
   RecordedAt: string;
   Status?: number;
   Duration?: number;
   Email?: string | null;
   Content?: string | null;
+  PlainText?: string | null; // PlainText version of the sentence
+  AudioPlaintext?: string | null; // Audio URL for PlainText version (from Sentence)
+  AudioContent?: string | null; // Audio URL for Content version (from Sentence)
+  RecordingsCount?: number; // Number of recordings for this sentence
 }
 
 
@@ -251,7 +256,8 @@ export interface UploadRecordingResponse {
 export const uploadRecording = async (
   audioBlob: Blob,
   personId: string,
-  sentenceId: string
+  sentenceId: string,
+  type: 'plaintext' | 'content'
 ): Promise<UploadRecordingResponse> => {
   try {
     const formData = new FormData();
@@ -277,6 +283,7 @@ export const uploadRecording = async (
     formData.append("audio", audioBlob, fileName);
     formData.append("personId", personId);
     formData.append("sentenceId", sentenceId);
+    formData.append("type", type);
 
     const response = await axiosInstance.post<UploadRecordingResponse>(
       "recordings-new",
