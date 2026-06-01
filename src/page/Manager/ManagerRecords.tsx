@@ -13,8 +13,6 @@ import {
   Input,
   message,
   Popconfirm,
-  Modal,
-  Form,
 } from 'antd';
 import {
   AudioOutlined,
@@ -25,15 +23,11 @@ import {
   DownloadOutlined,
   SearchOutlined,
   DeleteOutlined,
-  EditOutlined,
 } from '@ant-design/icons';
 import SidebarManager from '@/components/SidebarManager';
 import {
   getRecordingsWithMeta,
-  approveRecording,
-  rejectRecording,
   deleteRecording,
-  updateSentence,
   downloadSentences,
   Recording,
 } from '@/services/features/recordingSlice';
@@ -41,7 +35,6 @@ import axiosInstance from '@/services/constant/axiosInstance';
 import { BASE_URL } from '@/services/constant/apiConfig';
 
 const { Title, Text } = Typography;
-const { TextArea } = Input;
 
 const ManagerRecords: React.FC = () => {
   const [recordings, setRecordings] = useState<Recording[]>([]);
@@ -61,9 +54,6 @@ const ManagerRecords: React.FC = () => {
   const [approvingAll, setApprovingAll] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-  const [editingSentenceId, setEditingSentenceId] = useState<string | null>(null);
-  const [form] = Form.useForm();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Cleanup audio on unmount
@@ -119,71 +109,6 @@ const ManagerRecords: React.FC = () => {
       console.error('Failed to fetch recordings:', error);
     } finally {
       setLoadingRecordings(false);
-    }
-  };
-
-  const handlePlay = async (audioUrl: string | null, id: string) => {
-    if (!audioUrl) {
-      message.warning('Không có file âm thanh cho bản ghi này');
-      return;
-    }
-
-    // Stop current audio if it's the same one
-    if (playingId === id && playingType === null) {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-      setPlayingId(null);
-      setPlayingType(null);
-      return;
-    }
-
-    // Stop previous audio if exists
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-
-    try {
-      // Normalize URL if relative
-      let fullUrl = audioUrl;
-      if (!audioUrl.startsWith('http')) {
-        try {
-          const origin = new URL(BASE_URL).origin;
-          fullUrl = audioUrl.startsWith('/') ? `${origin}${audioUrl}` : `${origin}/${audioUrl}`;
-        } catch (e) {
-          console.error('Failed to parse BASE_URL:', e);
-        }
-      }
-
-      setPlayingId(id);
-      setPlayingType(null);
-      console.log('Playing audio from:', fullUrl);
-      const audio = new Audio(fullUrl);
-      audioRef.current = audio;
-
-      audio.onended = () => {
-        setPlayingId(null);
-        setPlayingType(null);
-        audioRef.current = null;
-      };
-
-      audio.onerror = (e) => {
-        console.error('Audio playback error:', e);
-        message.error('Không thể phát tập tin âm thanh này. File có thể bị lỗi hoặc không tồn tại.');
-        setPlayingId(null);
-        setPlayingType(null);
-        audioRef.current = null;
-      };
-
-      await audio.play();
-    } catch (error) {
-      console.error('Failed to play audio:', error);
-      message.error('Lỗi khi phát âm thanh');
-      setPlayingId(null);
-      setPlayingType(null);
-      audioRef.current = null;
     }
   };
 
@@ -253,24 +178,6 @@ const ManagerRecords: React.FC = () => {
     }
   };
 
-  const handleApproveRecording = async (recordingId: string) => {
-    try {
-      await approveRecording(recordingId);
-      fetchRecordings(page, pageSize, recordingStatusFilter, emailSearch);
-    } catch (error) {
-      console.error('Failed to approve recording:', error);
-    }
-  };
-
-  const handleRejectRecording = async (recordingId: string) => {
-    try {
-      await rejectRecording(recordingId);
-      fetchRecordings(page, pageSize, recordingStatusFilter, emailSearch);
-    } catch (error) {
-      console.error('Failed to reject recording:', error);
-    }
-  };
-
   const handleDeleteRecording = async (recordingId: string) => {
     try {
       await deleteRecording(recordingId);
@@ -280,37 +187,6 @@ const ManagerRecords: React.FC = () => {
       console.error('Failed to delete recording:', error);
       message.error('Xóa recording thất bại');
     }
-  };
-
-  const handleOpenEditSentence = (
-    sentenceId: string,
-    currentContent: string | null | undefined
-  ) => {
-    setEditingSentenceId(sentenceId);
-    form.setFieldsValue({ content: currentContent || '' });
-    setIsEditModalVisible(true);
-  };
-
-  const handleSaveEditSentence = async () => {
-    try {
-      const values = await form.validateFields();
-      if (editingSentenceId) {
-        await updateSentence(editingSentenceId, values.content);
-        message.success('Cập nhật câu thành công');
-        setIsEditModalVisible(false);
-        form.resetFields();
-        fetchRecordings(page, pageSize, recordingStatusFilter, emailSearch);
-      }
-    } catch (error) {
-      console.error('Failed to update sentence:', error);
-      message.error('Cập nhật câu thất bại');
-    }
-  };
-
-  const handleCancelEditSentence = () => {
-    setIsEditModalVisible(false);
-    form.resetFields();
-    setEditingSentenceId(null);
   };
 
   const handleApproveAll = async () => {
@@ -674,25 +550,6 @@ const ManagerRecords: React.FC = () => {
           </div>
         </div>
       </div>
-
-      <Modal
-        title="Sửa câu sentence"
-        open={isEditModalVisible}
-        onOk={handleSaveEditSentence}
-        onCancel={handleCancelEditSentence}
-        okText="Lưu"
-        cancelText="Hủy"
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="content"
-            label="Nội dung câu"
-            rules={[{ required: true, message: 'Vui lòng nhập nội dung câu' }]}
-          >
-            <TextArea rows={4} placeholder="Nhập nội dung câu..." />
-          </Form.Item>
-        </Form>
-      </Modal>
     </div>
   );
 };

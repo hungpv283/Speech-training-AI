@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Typography, Table, Button, Space, Spin, Empty, Row, Col, Tag, Select, Input, message, Popconfirm, Modal, Form } from 'antd';
-import { AudioOutlined, CheckCircleOutlined, PlayCircleOutlined, CloseCircleOutlined, ClockCircleOutlined, DownloadOutlined, SearchOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
+import { AudioOutlined, CheckCircleOutlined, PlayCircleOutlined, CloseCircleOutlined, ClockCircleOutlined, DownloadOutlined, SearchOutlined, DeleteOutlined } from '@ant-design/icons';
 import Sidebar from '@/components/Sidebar';
 import { getRecordingsWithMeta, approveRecording, rejectRecording, deleteRecording, updateSentence, downloadSentences, Recording } from '@/services/features/recordingSlice';
 import axiosInstance from '@/services/constant/axiosInstance';
@@ -81,71 +81,6 @@ const ManagerRecords: React.FC = () => {
       console.error('Failed to fetch recordings:', error);
     } finally {
       setLoadingRecordings(false);
-    }
-  };
-
-  const handlePlay = async (audioUrl: string | null, id: string) => {
-    if (!audioUrl) {
-      message.warning('Không có file âm thanh cho bản ghi này');
-      return;
-    }
-
-    // Stop current audio if it's the same one
-    if (playingId === id && playingType === null) {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-      setPlayingId(null);
-      setPlayingType(null);
-      return;
-    }
-
-    // Stop previous audio if exists
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-
-    try {
-      // Normalize URL if relative
-      let fullUrl = audioUrl;
-      if (!audioUrl.startsWith('http')) {
-        try {
-          const origin = new URL(BASE_URL).origin;
-          fullUrl = audioUrl.startsWith('/') ? `${origin}${audioUrl}` : `${origin}/${audioUrl}`;
-        } catch (e) {
-          console.error('Failed to parse BASE_URL:', e);
-        }
-      }
-
-      setPlayingId(id);
-      setPlayingType(null);
-      console.log('Playing audio from:', fullUrl);
-      const audio = new Audio(fullUrl);
-      audioRef.current = audio;
-
-      audio.onended = () => {
-        setPlayingId(null);
-        setPlayingType(null);
-        audioRef.current = null;
-      };
-
-      audio.onerror = (e) => {
-        console.error('Audio playback error:', e);
-        message.error('Không thể phát tập tin âm thanh này. File có thể bị lỗi hoặc không tồn tại.');
-        setPlayingId(null);
-        setPlayingType(null);
-        audioRef.current = null;
-      };
-
-      await audio.play();
-    } catch (error) {
-      console.error('Failed to play audio:', error);
-      message.error('Lỗi khi phát âm thanh');
-      setPlayingId(null);
-      setPlayingType(null);
-      audioRef.current = null;
     }
   };
 
@@ -245,12 +180,6 @@ const ManagerRecords: React.FC = () => {
   };
 
   // Edit sentence handlers
-  const handleOpenEditSentence = (sentenceId: string, currentContent: string | null | undefined) => {
-    setEditingSentenceId(sentenceId);
-    form.setFieldsValue({ content: currentContent || '' });
-    setIsEditModalVisible(true);
-  };
-
   const handleSaveEditSentence = async () => {
     try {
       const values = await form.validateFields();
@@ -360,7 +289,6 @@ const ManagerRecords: React.FC = () => {
       render: (_: unknown, record: Recording) => {
         const isPlayingPlaintext = playingId === record.RecordingID && playingType === 'plaintext';
         const isPlayingContent = playingId === record.RecordingID && playingType === 'content';
-        const hasBothAudio = record.AudioPlaintext && record.AudioContent;
         
         return (
           <Space size={2} wrap>
