@@ -85,11 +85,12 @@ const RecordingPage: React.FC = () => {
   useEffect(() => {
     if (availableSentences && availableSentences.length > 0 && mode === 'existing') {
       const firstSentence = availableSentences[0];
-      // Always store Content in currentSentence
-      dispatch(setCurrentSentence(firstSentence.Content));
+      // Ưu tiên viEquivalent > csTranscript > Content
+      const displayText = firstSentence.viEquivalent?.trim() || firstSentence.csTranscript?.trim() || firstSentence.Content || '';
+      dispatch(setCurrentSentence(displayText));
       dispatch(setCurrentSentenceId(firstSentence.SentenceID));
-      // Store PlainText separately if available
-      setCurrentPlainText(firstSentence.PlainText || '');
+      // Store PlainText/csTranscript để phân biệt loại ghi
+      setCurrentPlainText(firstSentence.viEquivalent?.trim() || firstSentence.PlainText || '');
       // Reset recorded types and pending recordings
       setRecordedTypes(new Set());
       setPendingRecordings([]);
@@ -191,10 +192,11 @@ const RecordingPage: React.FC = () => {
           if (updatedSentences.length > 0) {
             // Move to next available sentence
             const nextSentence = updatedSentences[0];
-            dispatch(setCurrentSentence(nextSentence.Content));
+            const nextDisplayText = nextSentence.viEquivalent?.trim() || nextSentence.csTranscript?.trim() || nextSentence.Content || '';
+            dispatch(setCurrentSentence(nextDisplayText));
             dispatch(setCurrentSentenceId(nextSentence.SentenceID));
             dispatch(setCurrentRecordingIndex(recordings.length + 2));
-            setCurrentPlainText(nextSentence.PlainText || '');
+            setCurrentPlainText(nextSentence.viEquivalent?.trim() || nextSentence.PlainText || '');
             setRecordedTypes(new Set());
             setPendingRecordings([]);
           } else {
@@ -211,7 +213,9 @@ const RecordingPage: React.FC = () => {
       } else {
         // Chưa đủ 2 bản → chuyển sang loại còn lại
         if (recordedType === 'plaintext') {
-          dispatch(setCurrentSentence(availableSentences[0]?.Content || ''));
+          const firstSentence = availableSentences[0];
+          const nextText = firstSentence.viEquivalent?.trim() || firstSentence.csTranscript?.trim() || firstSentence.Content || '';
+          dispatch(setCurrentSentence(nextText));
         } else {
           dispatch(setCurrentSentence(currentPlainText));
         }

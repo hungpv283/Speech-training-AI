@@ -251,12 +251,19 @@ const ManagerRecords: React.FC = () => {
       width: 400,
       render: (_: unknown, record: Recording) => (
         <div className="flex flex-col gap-1">
-          {/* Content version */}
-          {record.Content && (
+          {/* csTranscript version (có tags) */}
+          {record.csTranscript && (
+            <span className="text-gray-900 text-sm">{record.csTranscript}</span>
+          )}
+          {/* viEquivalent version (không có tags) */}
+          {record.viEquivalent && (
+            <span className="text-gray-500 text-sm italic">{record.viEquivalent}</span>
+          )}
+          {/* Fallback: Content/PlainText */}
+          {!record.csTranscript && !record.viEquivalent && record.Content && (
             <span className="text-gray-900 text-sm">{record.Content}</span>
           )}
-          {/* PlainText version */}
-          {record.PlainText && (
+          {!record.csTranscript && !record.viEquivalent && record.PlainText && (
             <span className="text-gray-500 text-sm italic">{record.PlainText}</span>
           )}
           {/* Recordings count */}

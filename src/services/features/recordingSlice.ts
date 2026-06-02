@@ -1,11 +1,33 @@
 import axiosInstance from "@/services/constant/axiosInstance";
 
+// Response từ sentence_new_make: { _id, csTranscript, viEquivalent, status, createdAt, ... }
+// Response từ sentence_new:      { SentenceID, Content, PlainText, Status, CreatedAt, ... }
 export interface Sentence {
-  SentenceID: string;
-  Content: string;
+  SentenceID?: string;
+  _id?: string;
+  Content?: string | null;
+  csTranscript?: string | null;
+  viEquivalent?: string | null;
   PlainText?: string | null;
-  CreatedAt: string;
-  Status: number;
+  CreatedAt?: string;
+  createdAt?: string;
+  Status?: number;
+  status?: number;
+  domain?: string | null;
+}
+
+// Map BE response sang format chuẩn FE
+function mapSentence(raw: any): Sentence {
+  return {
+    SentenceID: raw.SentenceID || raw._id,
+    Content: raw.csTranscript || raw.Content || '',
+    csTranscript: raw.csTranscript || null,
+    viEquivalent: raw.viEquivalent || null,
+    PlainText: raw.viEquivalent || raw.PlainText || null,
+    CreatedAt: raw.CreatedAt || raw.createdAt || '',
+    Status: raw.Status ?? raw.status ?? 1,
+    domain: raw.domain ?? null,
+  };
 }
 
 export interface Recording {
@@ -19,11 +41,16 @@ export interface Recording {
   Status?: number;
   Duration?: number;
   Email?: string | null;
+  // Fields from sentence_new
   Content?: string | null;
-  PlainText?: string | null; // PlainText version of the sentence
-  AudioPlaintext?: string | null; // Audio URL for PlainText version (from Sentence)
-  AudioContent?: string | null; // Audio URL for Content version (from Sentence)
-  RecordingsCount?: number; // Number of recordings for this sentence
+  PlainText?: string | null;
+  // Fields from sentence_new_make
+  csTranscript?: string | null;
+  viEquivalent?: string | null;
+  // Audio URLs
+  AudioPlaintext?: string | null;
+  AudioContent?: string | null;
+  RecordingsCount?: number;
 }
 
 
@@ -56,9 +83,9 @@ export const getSentences = async (): Promise<Sentence[]> => {
     const data = response.data;
     // Handle both direct array and nested data structure
     if (Array.isArray(data)) {
-      return data;
+      return data.map(mapSentence);
     } else if (data?.data && Array.isArray(data.data)) {
-      return data.data;
+      return data.data.map(mapSentence);
     }
     console.warn("Unexpected data format from getSentences:", data);
     return [];
@@ -93,7 +120,7 @@ export const getSentencesWithMeta = async (
         totalCount: data.totalCount ?? data.count ?? data.data.length,
         totalPages: data.totalPages ?? 1,
         currentPage: data.currentPage ?? params?.page ?? 1,
-        data: data.data,
+        data: data.data.map(mapSentence),
         ...data,
       };
     }
@@ -105,7 +132,7 @@ export const getSentencesWithMeta = async (
         totalCount: data.length,
         totalPages: 1,
         currentPage: params?.page ?? 1,
-        data,
+        data: data.map(mapSentence),
       };
     }
 

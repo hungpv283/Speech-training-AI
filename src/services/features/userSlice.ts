@@ -81,14 +81,23 @@ export interface AvailableSentence {
   PlainText?: string | null;
   CreatedAt: string;
   Status: number;
+  // Fields from sentence_new_make
+  csTranscript?: string | null;
+  viEquivalent?: string | null;
+  domain?: string | null;
 }
 
 export function getSentenceDisplayText(s: {
-  Content: string;
+  Content?: string | null;
   PlainText?: string | null;
+  csTranscript?: string | null;
+  viEquivalent?: string | null;
 }): string {
+  // Ưu tiên viEquivalent (không tags) > csTranscript (có tags) > PlainText > Content
+  if (s.viEquivalent?.trim()) return s.viEquivalent.trim();
+  if (s.csTranscript?.trim()) return s.csTranscript.trim();
   const t = s.PlainText?.trim();
-  return t ? t : s.Content;
+  return t || s.Content || '';
 }
 
 interface UserState {
@@ -479,19 +488,22 @@ export const fetchAvailableSentences = createAsyncThunk(
       const response = await axiosInstance.get("sentences-new-make/approved-without-recordings", {
         params: { page: 1, limit: 20 }
       });
-      
+
       const responseData = response.data;
-      
+
       // Handle the response structure: { count, totalCount, totalPages, currentPage, data: [...] }
       const sentences = responseData?.data || [];
-      
-      // Map to AvailableSentence format
+
+      // Map BE response (snake/lower) → FE format (uppercase + camel)
       return sentences.map((s: any) => ({
-        SentenceID: s.SentenceID,
-        Content: s.Content,
-        PlainText: s.PlainText ?? null,
-        CreatedAt: s.CreatedAt,
-        Status: s.Status,
+        SentenceID: s.SentenceID || s._id,
+        Content: s.csTranscript || s.Content || '',
+        csTranscript: s.csTranscript || null,
+        viEquivalent: s.viEquivalent || null,
+        PlainText: s.viEquivalent || s.PlainText || null,
+        CreatedAt: s.CreatedAt || s.createdAt || '',
+        Status: s.Status ?? s.status ?? 1,
+        domain: s.domain ?? null,
       }));
     } catch (error) {
       console.error("Error in fetchAvailableSentences:", error);
