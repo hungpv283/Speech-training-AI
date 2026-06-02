@@ -476,7 +476,7 @@ export const fetchAvailableSentences = createAsyncThunk(
   async (_personId: string): Promise<AvailableSentence[]> => {
     try {
       // Call the new API endpoint directly
-      const response = await axiosInstance.get("sentences-new/approved-without-recordings", {
+      const response = await axiosInstance.get("sentences-new-make/approved-without-recordings", {
         params: { page: 1, limit: 20 }
       });
       

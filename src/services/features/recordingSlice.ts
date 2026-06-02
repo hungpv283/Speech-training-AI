@@ -52,7 +52,7 @@ export interface PaginatedParams {
 
 export const getSentences = async (): Promise<Sentence[]> => {
   try {
-    const response = await axiosInstance.get("sentences-new");
+    const response = await axiosInstance.get("sentences-new-make");
     const data = response.data;
     // Handle both direct array and nested data structure
     if (Array.isArray(data)) {
@@ -81,7 +81,7 @@ export const getSentencesWithMeta = async (
     if (params?.status !== null && params?.status !== undefined) {
       requestParams.status = params.status;
     }
-    const response = await axiosInstance.get("sentences-new", {
+    const response = await axiosInstance.get("sentences-new-make", {
       params: requestParams,
     });
     const data = response.data;
@@ -131,7 +131,7 @@ export const getSentencesWithMeta = async (
 
 export const getRecordings = async (): Promise<Recording[]> => {
   try {
-    const response = await axiosInstance.get("recordings-new");
+    const response = await axiosInstance.get("recordings-new-make");
     const data = response.data;
     // Handle both direct array and nested data structure
     if (Array.isArray(data)) {
@@ -164,7 +164,7 @@ export const getRecordingsWithMeta = async (
     if (params?.email && params.email.trim() !== '') {
       requestParams.email = params.email.trim();
     }
-    const response = await axiosInstance.get("recordings-new", {
+    const response = await axiosInstance.get("recordings-new-make", {
       params: requestParams,
     });
     const data = response.data;
@@ -286,7 +286,7 @@ export const uploadRecording = async (
     formData.append("type", type);
 
     const response = await axiosInstance.post<UploadRecordingResponse>(
-      "recordings-new",
+      "recordings-new-make",
       formData,
       {
         headers: {
@@ -338,7 +338,7 @@ export const updateSentence = async (
 ): Promise<Sentence> => {
   try {
     const response = await axiosInstance.put<Sentence>(
-      `sentences-new/${sentenceId}`,
+      `sentences-new-make/${sentenceId}`,
       { content }
     );
     return response.data;
@@ -349,7 +349,7 @@ export const updateSentence = async (
 
 export const deleteSentence = async (sentenceId: string): Promise<void> => {
   try {
-    await axiosInstance.delete(`sentences-new/${sentenceId}`);
+    await axiosInstance.delete(`sentences-new-make/${sentenceId}`);
   } catch (error: any) {
     throw error.response?.data || { message: "Delete sentence failed" };
   }
@@ -438,7 +438,7 @@ export const createUserSentence = async (
 ): Promise<CreateUserSentenceResponse> => {
   try {
     const response = await axiosInstance.post<CreateUserSentenceResponse>(
-      "sentences-new/user",
+      "sentences-new-make/user",
       request
     );
     return response.data;
@@ -457,7 +457,7 @@ export const downloadSentences = async (
   params?: DownloadSentencesParams
 ): Promise<Blob> => {
   try {
-    const response = await axiosInstance.get<Blob>("sentences-new/download", {
+    const response = await axiosInstance.get<Blob>("sentences-new-make/download", {
       params: {
         mode: params?.mode || "with-audio",
         status: params?.status,
