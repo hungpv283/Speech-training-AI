@@ -85,12 +85,11 @@ const RecordingPage: React.FC = () => {
   useEffect(() => {
     if (availableSentences && availableSentences.length > 0 && mode === 'existing') {
       const firstSentence = availableSentences[0];
-      // Ưu tiên viEquivalent > csTranscript > Content
-      const displayText = firstSentence.viEquivalent?.trim() || firstSentence.csTranscript?.trim() || firstSentence.Content || '';
-      dispatch(setCurrentSentence(displayText));
+      // CONTENT = viEquivalent (bản dịch thuần Việt)
+      dispatch(setCurrentSentence(firstSentence.viEquivalent?.trim() || firstSentence.Content || ''));
       dispatch(setCurrentSentenceId(firstSentence.SentenceID));
-      // Store PlainText/csTranscript để phân biệt loại ghi
-      setCurrentPlainText(firstSentence.viEquivalent?.trim() || firstSentence.PlainText || '');
+      // PLAINTEXT = csTranscript (có tag [vi]...[en]...)
+      setCurrentPlainText(firstSentence.csTranscript?.trim() || '');
       // Reset recorded types and pending recordings
       setRecordedTypes(new Set());
       setPendingRecordings([]);
@@ -192,11 +191,12 @@ const RecordingPage: React.FC = () => {
           if (updatedSentences.length > 0) {
             // Move to next available sentence
             const nextSentence = updatedSentences[0];
-            const nextDisplayText = nextSentence.viEquivalent?.trim() || nextSentence.csTranscript?.trim() || nextSentence.Content || '';
-            dispatch(setCurrentSentence(nextDisplayText));
+            // CONTENT = viEquivalent
+            dispatch(setCurrentSentence(nextSentence.viEquivalent?.trim() || nextSentence.Content || ''));
             dispatch(setCurrentSentenceId(nextSentence.SentenceID));
             dispatch(setCurrentRecordingIndex(recordings.length + 2));
-            setCurrentPlainText(nextSentence.viEquivalent?.trim() || nextSentence.PlainText || '');
+            // PLAINTEXT = csTranscript
+            setCurrentPlainText(nextSentence.csTranscript?.trim() || '');
             setRecordedTypes(new Set());
             setPendingRecordings([]);
           } else {
@@ -214,9 +214,10 @@ const RecordingPage: React.FC = () => {
         // Chưa đủ 2 bản → chuyển sang loại còn lại
         if (recordedType === 'plaintext') {
           const firstSentence = availableSentences[0];
-          const nextText = firstSentence.viEquivalent?.trim() || firstSentence.csTranscript?.trim() || firstSentence.Content || '';
-          dispatch(setCurrentSentence(nextText));
+          // Chuyển sang CONTENT = viEquivalent
+          dispatch(setCurrentSentence(firstSentence.viEquivalent?.trim() || firstSentence.Content || ''));
         } else {
+          // Chuyển sang PLAINTEXT = csTranscript
           dispatch(setCurrentSentence(currentPlainText));
         }
       }
