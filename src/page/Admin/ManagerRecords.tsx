@@ -153,18 +153,22 @@ const ManagerRecords: React.FC = () => {
   const handleApproveRecording = async (recordingId: string) => {
     try {
       await approveRecording(recordingId);
+      message.success('Đã duyệt recording thành công');
       fetchRecordings(page, pageSize, recordingStatusFilter, emailSearch);
     } catch (error) {
       console.error('Failed to approve recording:', error);
+      message.error('Duyệt recording thất bại');
     }
   };
 
   const handleRejectRecording = async (recordingId: string) => {
     try {
       await rejectRecording(recordingId);
+      message.success('Đã từ chối recording thành công');
       fetchRecordings(page, pageSize, recordingStatusFilter, emailSearch);
     } catch (error) {
       console.error('Failed to reject recording:', error);
+      message.error('Từ chối recording thất bại');
     }
   };
 
@@ -272,11 +276,14 @@ const ManagerRecords: React.FC = () => {
             <span className="text-gray-500 text-sm italic">{record.viEquivalent}</span>
           )}
           {/* Fallback: Content/PlainText */}
-          {!record.csTranscript && !record.viEquivalent && record.Content && (
-            <span className="text-gray-900 text-sm">{record.Content}</span>
+          {record.csTranscript && (
+            <span className="text-gray-900 text-sm">{record.csTranscript}</span>
           )}
-          {!record.csTranscript && !record.viEquivalent && record.PlainText && (
-            <span className="text-gray-500 text-sm italic">{record.PlainText}</span>
+          {!record.csTranscript && record.viEquivalent && (
+            <span className="text-gray-500 text-sm italic">{record.viEquivalent}</span>
+          )}
+          {!record.csTranscript && !record.viEquivalent && (
+            <span className="text-gray-400 text-sm">Không có nội dung hiển thị</span>
           )}
           {/* Recordings count */}
           {record.RecordingsCount !== undefined && record.RecordingsCount > 0 && (
@@ -290,16 +297,15 @@ const ManagerRecords: React.FC = () => {
     {
       title: 'Hành động',
       key: 'action',
-      width: 280,
+      width: 360,
       fixed: 'right' as const,
       align: 'center' as const,
       render: (_: unknown, record: Recording) => {
         const isPlayingPlaintext = playingId === record.RecordingID && playingType === 'plaintext';
         const isPlayingContent = playingId === record.RecordingID && playingType === 'content';
-        
+
         return (
           <Space size={2} wrap>
-            {/* Play PlainText button */}
             {record.AudioPlaintext ? (
               <Button
                 type={isPlayingPlaintext ? 'primary' : 'default'}
@@ -314,8 +320,7 @@ const ManagerRecords: React.FC = () => {
             ) : (
               <Tag color="default" className="rounded-full">Chưa có PT</Tag>
             )}
-            
-            {/* Play Content button */}
+
             {record.AudioContent ? (
               <Button
                 type={isPlayingContent ? 'primary' : 'default'}
@@ -330,8 +335,7 @@ const ManagerRecords: React.FC = () => {
             ) : (
               <Tag color="default" className="rounded-full">Chưa có CT</Tag>
             )}
-            
-            {/* Approve/Reject buttons - only show when not playing */}
+
             {playingId !== record.RecordingID && (
               <>
                 {(record.IsApproved === 0 || record.IsApproved === false || record.IsApproved === null) && (
@@ -343,7 +347,7 @@ const ManagerRecords: React.FC = () => {
                       className="rounded-full bg-green-500 hover:bg-green-600 border-green-500 text-white"
                       style={{ backgroundColor: '#22c55e', borderColor: '#22c55e' }}
                     >
-                      Duyệt
+                      Duyệt record
                     </Button>
                     <Button
                       danger

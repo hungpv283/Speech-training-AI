@@ -260,11 +260,14 @@ const ManagerRecords: React.FC = () => {
             <span className="text-gray-500 text-sm italic">{record.viEquivalent}</span>
           )}
           {/* Fallback: Content/PlainText */}
-          {!record.csTranscript && !record.viEquivalent && record.Content && (
-            <span className="text-gray-900 text-sm">{record.Content}</span>
+          {record.csTranscript && (
+            <span className="text-gray-900 text-sm">{record.csTranscript}</span>
           )}
-          {!record.csTranscript && !record.viEquivalent && record.PlainText && (
-            <span className="text-gray-500 text-sm italic">{record.PlainText}</span>
+          {!record.csTranscript && record.viEquivalent && (
+            <span className="text-gray-500 text-sm italic">{record.viEquivalent}</span>
+          )}
+          {!record.csTranscript && !record.viEquivalent && (
+            <span className="text-gray-400 text-sm">Không có nội dung hiển thị</span>
           )}
           {/* Recordings count */}
           {record.RecordingsCount !== undefined && record.RecordingsCount > 0 && (
