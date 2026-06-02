@@ -31,22 +31,18 @@ export interface Recording {
   RecordingID: string;
   PersonID: string | null;
   SentenceID: string;
-  AudioUrl: string | null;
-  Type?: 'plaintext' | 'content' | null; // Type of this recording
   IsApproved: number | boolean | null;
-  RecordedAt: string;
+  recordedAt?: string;
+  RecordedAt?: string;
   Status?: number;
-  Duration?: number;
   Email?: string | null;
-  // Fields from sentence_new
-  Content?: string | null;
-  PlainText?: string | null;
-  // Fields from sentence_new_make
+  // Sentence fields
   csTranscript?: string | null;
   viEquivalent?: string | null;
-  // Audio URLs
+  // Audio URLs - chỉ dùng 1 trong 2 model
   AudioPlaintext?: string | null;
   AudioContent?: string | null;
+  AudioUrl?: string | null; // legacy cho model cũ
   RecordingsCount?: number;
 }
 
