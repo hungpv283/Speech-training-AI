@@ -3,23 +3,20 @@ import axiosInstance from "@/services/constant/axiosInstance";
 // Response từ sentence_new_make: { _id, csTranscript, viEquivalent, status, createdAt, ... }
 // Response từ sentence_new:      { SentenceID, Content, PlainText, Status, CreatedAt, ... }
 export interface Sentence {
-  SentenceID?: string;
-  _id?: string;
+  SentenceID: string;
   Content?: string | null;
   csTranscript?: string | null;
   viEquivalent?: string | null;
   PlainText?: string | null;
   CreatedAt?: string;
-  createdAt?: string;
   Status?: number;
-  status?: number;
   domain?: string | null;
 }
 
 // Map BE response sang format chuẩn FE
 function mapSentence(raw: any): Sentence {
   return {
-    SentenceID: raw.SentenceID || raw._id,
+    SentenceID: raw.SentenceID || raw._id || '',
     Content: raw.csTranscript || raw.Content || '',
     csTranscript: raw.csTranscript || null,
     viEquivalent: raw.viEquivalent || null,
