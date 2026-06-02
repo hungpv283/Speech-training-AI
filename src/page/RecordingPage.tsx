@@ -439,7 +439,34 @@ const RecordingPage: React.FC = () => {
                     </Tag>
                   </div>
                   
-                  {/* PlainText Selection */}
+                  {/* Content Selection - viEquivalent (bản dịch thuần Việt) */}
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-medium text-purple-600 uppercase tracking-wide flex items-center gap-1">
+                      Content
+                      {recordedTypes.has('content') && <CheckOutlined className="text-green-500" />}
+                    </span>
+                    <button
+                      onClick={() => {
+                        dispatch(setCurrentSentence(currentSentence));
+                        dispatch(setCurrentSentenceId(availableSentences[0]?.SentenceID || null));
+                      }}
+                      className={cn(
+                        "w-full text-left px-4 py-3 rounded-xl border-2 transition-all duration-200",
+                        !recordedTypes.has('content')
+                          ? "border-purple-500 bg-purple-50 shadow-md"
+                          : "border-gray-200 bg-gray-50 hover:border-purple-300"
+                      )}
+                    >
+                      <Text className={cn(
+                        "block text-base md:text-lg leading-relaxed",
+                        !recordedTypes.has('content') ? "text-purple-700 font-semibold" : "text-gray-600 font-medium"
+                      )}>
+                        {currentSentence || 'Đang tải...'}
+                      </Text>
+                    </button>
+                  </div>
+
+                  {/* PlainText Selection - csTranscript (có tags [vi]...[en]...) */}
                   {currentPlainText && (
                     <div className="flex flex-col gap-1">
                       <span className="text-[10px] font-medium text-blue-600 uppercase tracking-wide flex items-center gap-1">
@@ -467,33 +494,6 @@ const RecordingPage: React.FC = () => {
                       </button>
                     </div>
                   )}
-                  
-                  {/* Content Selection */}
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-medium text-purple-600 uppercase tracking-wide flex items-center gap-1">
-                      Content
-                      {recordedTypes.has('content') && <CheckOutlined className="text-green-500" />}
-                    </span>
-                    <button
-                      onClick={() => {
-                        dispatch(setCurrentSentence(currentSentence));
-                        dispatch(setCurrentSentenceId(availableSentences[0]?.SentenceID || null));
-                      }}
-                      className={cn(
-                        "w-full text-left px-4 py-3 rounded-xl border-2 transition-all duration-200",
-                        !recordedTypes.has('content')
-                          ? "border-purple-500 bg-purple-50 shadow-md"
-                          : "border-gray-200 bg-gray-50 hover:border-purple-300"
-                      )}
-                    >
-                      <Text className={cn(
-                        "block text-base md:text-lg leading-relaxed",
-                        !recordedTypes.has('content') ? "text-purple-700 font-semibold" : "text-gray-600 font-medium"
-                      )}>
-                        {currentSentence || 'Đang tải...'}
-                      </Text>
-                    </button>
-                  </div>
                   
                   {/* Status indicator */}
                   <div className="text-center py-1">
