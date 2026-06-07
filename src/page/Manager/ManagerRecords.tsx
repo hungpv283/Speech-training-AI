@@ -27,6 +27,8 @@ import {
 import SidebarManager from '@/components/SidebarManager';
 import {
   getRecordingsWithMeta,
+  approveRecording,
+  rejectRecording,
   deleteRecording,
   downloadSentences,
   Recording,
@@ -189,6 +191,28 @@ const ManagerRecords: React.FC = () => {
     }
   };
 
+  const handleApproveRecording = async (recordingId: string) => {
+    try {
+      await approveRecording(recordingId);
+      message.success('Đã duyệt recording thành công');
+      fetchRecordings(page, pageSize, recordingStatusFilter, emailSearch);
+    } catch (error) {
+      console.error('Failed to approve recording:', error);
+      message.error('Duyệt recording thất bại');
+    }
+  };
+
+  const handleRejectRecording = async (recordingId: string) => {
+    try {
+      await rejectRecording(recordingId);
+      message.success('Đã từ chối recording thành công');
+      fetchRecordings(page, pageSize, recordingStatusFilter, emailSearch);
+    } catch (error) {
+      console.error('Failed to reject recording:', error);
+      message.error('Từ chối recording thất bại');
+    }
+  };
+
   const handleApproveAll = async () => {
     if (!emailSearch || emailSearch.trim() === '') {
       message.warning('Vui lòng nhập email để duyệt');
@@ -305,7 +329,7 @@ const ManagerRecords: React.FC = () => {
             ) : (
               <Tag color="default" className="rounded-full">Chưa có PT</Tag>
             )}
-            
+
             {/* Play Content button */}
             {record.AudioContent ? (
               <Button
@@ -321,21 +345,45 @@ const ManagerRecords: React.FC = () => {
             ) : (
               <Tag color="default" className="rounded-full">Chưa có CT</Tag>
             )}
-            
-            {/* Delete button - only show when not playing */}
+
             {playingId !== record.RecordingID && (
-              <Popconfirm
-                title="Xóa recording này?"
-                description="Bạn có chắc chắn muốn xóa recording và sentence này không?"
-                onConfirm={() => handleDeleteRecording(record.RecordingID)}
-                okText="Xóa"
-                cancelText="Hủy"
-                okButtonProps={{ danger: true }}
-              >
-                <Button danger icon={<DeleteOutlined />} size="small" className="rounded-full">
-                  Xóa
+              <>
+                <Button
+                  icon={<CheckCircleOutlined />}
+                  size="small"
+                  onClick={() => handleApproveRecording(record.RecordingID)}
+                  className="rounded-full bg-green-500 hover:bg-green-600 border-green-500 text-white"
+                  style={{ backgroundColor: '#22c55e', borderColor: '#22c55e' }}
+                >
+                  Duyệt câu
                 </Button>
-              </Popconfirm>
+                <Button
+                  danger
+                  icon={<CloseCircleOutlined />}
+                  size="small"
+                  onClick={() => handleRejectRecording(record.RecordingID)}
+                  className="rounded-full"
+                >
+                  Từ chối
+                </Button>
+                <Popconfirm
+                  title="Xóa recording này?"
+                  description="Bạn có chắc chắn muốn xóa recording và sentence này không?"
+                  onConfirm={() => handleDeleteRecording(record.RecordingID)}
+                  okText="Xóa"
+                  cancelText="Hủy"
+                  okButtonProps={{ danger: true }}
+                >
+                  <Button
+                    danger
+                    icon={<DeleteOutlined />}
+                    size="small"
+                    className="rounded-full"
+                  >
+                    Xóa
+                  </Button>
+                </Popconfirm>
+              </>
             )}
           </Space>
         );

@@ -239,7 +239,17 @@ const ManagerSentences: React.FC = () => {
       title: 'Nội dung',
       key: 'Content',
       render: (_: unknown, record: Sentence) => (
-        <span className="text-gray-900">{getSentenceDisplayText(record)}</span>
+        <div className="flex flex-col gap-1">
+          {record.csTranscript && (
+            <span className="text-gray-900">{record.csTranscript}</span>
+          )}
+          {record.viEquivalent && (
+            <span className="text-gray-500 italic">{record.viEquivalent}</span>
+          )}
+          {!record.csTranscript && !record.viEquivalent && (
+            <span className="text-gray-900">{getSentenceDisplayText(record)}</span>
+          )}
+        </div>
       ),
     },
     {
@@ -304,26 +314,29 @@ const ManagerSentences: React.FC = () => {
     },
     {
       title: 'Trạng thái',
-      dataIndex: 'Status',
       key: 'Status',
       width: 150,
-      render: (status: number) => {
+      render: (_: unknown, record: Sentence) => {
+        const status = record.Status ?? (record as Sentence & { status?: number }).status;
         const statusConfig: { [key: number]: { color: string; label: string } } = {
           0: { color: 'default', label: 'Chờ duyệt' },
           1: { color: 'green', label: 'Đã duyệt' },
           2: { color: 'blue', label: 'Đã thu âm' },
           3: { color: 'red', label: 'Bị từ chối' },
         };
-        const config = statusConfig[status] || { color: 'default', label: 'Unknown' };
+        const config =
+          typeof status === 'number'
+            ? statusConfig[status] || { color: 'default', label: 'Unknown' }
+            : { color: 'default', label: '-' };
         return <Tag color={config.color}>{config.label}</Tag>;
       },
     },
     {
       title: 'Ngày tạo',
-      dataIndex: 'CreatedAt',
       key: 'CreatedAt',
       width: 180,
-      render: (date: string) => {
+      render: (_: unknown, record: Sentence) => {
+        const date = record.CreatedAt ?? (record as Sentence & { createdAt?: string }).createdAt;
         if (!date) return '-';
         return new Date(date).toLocaleString('vi-VN');
       },

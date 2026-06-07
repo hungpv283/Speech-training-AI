@@ -267,25 +267,27 @@ const ManagerRecords: React.FC = () => {
       width: 400,
       render: (_: unknown, record: Recording) => (
         <div className="flex flex-col gap-1">
-          {/* csTranscript version (có tags) */}
           {record.csTranscript && (
-            <span className="text-gray-900 text-sm">{record.csTranscript}</span>
+            <span
+              className="text-gray-900 text-sm block truncate max-w-[360px]"
+              title={record.csTranscript}
+            >
+              {record.csTranscript}
+            </span>
           )}
-          {/* viEquivalent version (không có tags) */}
           {record.viEquivalent && (
-            <span className="text-gray-500 text-sm italic">{record.viEquivalent}</span>
-          )}
-          {/* Fallback: Content/PlainText */}
-          {record.csTranscript && (
-            <span className="text-gray-900 text-sm">{record.csTranscript}</span>
-          )}
-          {!record.csTranscript && record.viEquivalent && (
-            <span className="text-gray-500 text-sm italic">{record.viEquivalent}</span>
+            <span
+              className="text-gray-500 text-sm italic block truncate max-w-[360px]"
+              title={record.viEquivalent}
+            >
+              {record.viEquivalent}
+            </span>
           )}
           {!record.csTranscript && !record.viEquivalent && (
-            <span className="text-gray-400 text-sm">Không có nội dung hiển thị</span>
+            <span className="text-gray-900 text-sm block truncate max-w-[360px]">
+              Không có nội dung hiển thị
+            </span>
           )}
-          {/* Recordings count */}
           {record.RecordingsCount !== undefined && record.RecordingsCount > 0 && (
             <span className="text-xs text-gray-400">
               ({record.RecordingsCount} bản ghi)
@@ -338,28 +340,34 @@ const ManagerRecords: React.FC = () => {
 
             {playingId !== record.RecordingID && (
               <>
-                {(record.IsApproved === 0 || record.IsApproved === false || record.IsApproved === null) && (
-                  <>
-                    <Button
-                      icon={<CheckCircleOutlined />}
-                      size="small"
-                      onClick={() => handleApproveRecording(record.RecordingID)}
-                      className="rounded-full bg-green-500 hover:bg-green-600 border-green-500 text-white"
-                      style={{ backgroundColor: '#22c55e', borderColor: '#22c55e' }}
-                    >
-                      Duyệt record
-                    </Button>
-                    <Button
-                      danger
-                      icon={<CloseCircleOutlined />}
-                      size="small"
-                      onClick={() => handleRejectRecording(record.RecordingID)}
-                      className="rounded-full"
-                    >
-                      Từ chối
-                    </Button>
-                  </>
-                )}
+                {(() => {
+                  const approved = record.IsApproved ?? (record as any).isApproved;
+                  const normalized = typeof approved === 'number' ? approved : (approved ? 1 : 0);
+                  return (
+                    (normalized === 0) && (
+                      <>
+                        <Button
+                          icon={<CheckCircleOutlined />}
+                          size="small"
+                          onClick={() => handleApproveRecording(record.RecordingID)}
+                          className="rounded-full bg-green-500 hover:bg-green-600 border-green-500 text-white"
+                          style={{ backgroundColor: '#22c55e', borderColor: '#22c55e' }}
+                        >
+                          Duyệt record
+                        </Button>
+                        <Button
+                          danger
+                          icon={<CloseCircleOutlined />}
+                          size="small"
+                          onClick={() => handleRejectRecording(record.RecordingID)}
+                          className="rounded-full"
+                        >
+                          Từ chối
+                        </Button>
+                      </>
+                    )
+                  );
+                })()}
                 <Popconfirm
                   title="Xóa recording này?"
                   description="Bạn có chắc chắn muốn xóa recording và sentence này không?"
@@ -385,17 +393,17 @@ const ManagerRecords: React.FC = () => {
     },
     {
       title: 'Trạng thái',
-      dataIndex: 'IsApproved',
       key: 'IsApproved',
       width: 100,
-      render: (isApproved: number | boolean | null) => {
+      render: (_: unknown, record: Recording) => {
+        const approved = record.IsApproved ?? (record as any).isApproved;
         const statusConfig: { [key: number]: { color: string; label: string } } = {
           0: { color: 'gold', label: 'Chờ duyệt' },
           1: { color: 'green', label: 'Đã duyệt' },
           2: { color: 'red', label: 'Bị từ chối' },
           3: { color: 'orange', label: 'Trùng lặp' },
         };
-        const status = typeof isApproved === 'number' ? isApproved : (isApproved ? 1 : 0);
+        const status = typeof approved === 'number' ? approved : (approved ? 1 : 0);
         const config = statusConfig[status] || { color: 'default', label: 'Unknown' };
         return <Tag color={config.color}>{config.label}</Tag>;
       },

@@ -105,14 +105,16 @@ export const getSentencesWithMeta = async (
       params: requestParams,
     });
     const data = response.data;
+    const pagination = data?.pagination ?? {};
 
     // If backend already returns the paginated shape
     if (data && Array.isArray(data.data)) {
       return {
         count: data.count ?? data.data.length,
-        totalCount: data.totalCount ?? data.count ?? data.data.length,
-        totalPages: data.totalPages ?? 1,
-        currentPage: data.currentPage ?? params?.page ?? 1,
+        totalCount:
+          pagination.totalCount ?? data.totalCount ?? data.count ?? data.data.length,
+        totalPages: pagination.totalPages ?? data.totalPages ?? 1,
+        currentPage: pagination.currentPage ?? data.currentPage ?? params?.page ?? 1,
         data: data.data.map(mapSentence),
         ...data,
       };
@@ -251,7 +253,7 @@ export const getRecordingsByStatus = async (
       isApproved: number;
       count: number;
       data: Recording[];
-    }>(`recordings-new/status/${status}`);
+    }>(`recordings-new-make/status/${status}`);
     return Array.isArray(response.data.data) ? response.data.data : [];
   } catch (error: any) {
     console.error("Error fetching recordings by status:", error);
@@ -406,7 +408,7 @@ export const approveRecording = async (
 ): Promise<Recording> => {
   try {
     const response = await axiosInstance.patch<Recording>(
-      `recordings-new/${recordingId}/approve`
+      `recordings-new-make/${recordingId}/approve`
     );
     return response.data;
   } catch (error: any) {
@@ -419,7 +421,7 @@ export const rejectRecording = async (
 ): Promise<Recording> => {
   try {
     const response = await axiosInstance.patch<Recording>(
-      `recordings-new/${recordingId}/reject`
+      `recordings-new-make/${recordingId}/reject`
     );
     return response.data;
   } catch (error: any) {
@@ -430,7 +432,7 @@ export const rejectRecording = async (
 // Delete Recording
 export const deleteRecording = async (recordingId: string): Promise<void> => {
   try {
-    await axiosInstance.delete(`recordings-new/${recordingId}`);
+    await axiosInstance.delete(`recordings-new-make/${recordingId}`);
   } catch (error: any) {
     throw error.response?.data || { message: "Delete recording failed" };
   }

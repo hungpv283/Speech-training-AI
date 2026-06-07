@@ -30,7 +30,7 @@ const Dashboard: React.FC = () => {
       try {
         const [recordingsRes, sentencesRes] = await Promise.all([
           getRecordingsWithMeta({ page: 1, limit: 20 }),
-          getSentencesWithMeta({ page: 1, limit: 20 })
+          getSentencesWithMeta({ page: 1, limit: 20, status: 1 })
         ]);
         setRecordings(recordingsRes.data);
         setSentences(sentencesRes.data);

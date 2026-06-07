@@ -22,6 +22,14 @@ import { clearPersistedUserData } from '@/lib/storageUtils';
 
 const { Title, Text } = Typography;
 
+const pickNextSentence = (
+  sentences: Array<{ SentenceID: string; Content: string; csTranscript?: string | null; viEquivalent?: string | null }>,
+  excludedSentenceIds: string[] = []
+) => {
+  const excluded = new Set(excludedSentenceIds);
+  return sentences.find((sentence) => !excluded.has(sentence.SentenceID)) ?? null;
+};
+
 // Type for pending recordings stored locally
 interface PendingRecording {
   audioBlob: Blob;
@@ -187,10 +195,13 @@ const RecordingPage: React.FC = () => {
 
           // Fetch next sentences
           const updatedSentences = await dispatch(fetchAvailableSentences('')).unwrap();
+          const justRecordedSentenceIds = Array.from(
+            new Set(newPendingRecordings.map((pending) => pending.sentenceId))
+          );
+          const nextSentence = pickNextSentence(updatedSentences, justRecordedSentenceIds);
 
-          if (updatedSentences.length > 0) {
+          if (nextSentence) {
             // Move to next available sentence
-            const nextSentence = updatedSentences[0];
             // CONTENT = viEquivalent
             dispatch(setCurrentSentence(nextSentence.viEquivalent?.trim() || nextSentence.Content || ''));
             dispatch(setCurrentSentenceId(nextSentence.SentenceID));
