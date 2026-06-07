@@ -30,6 +30,20 @@ const pickNextSentence = (
   return sentences.find((sentence) => !excluded.has(sentence.SentenceID)) ?? null;
 };
 
+const getContentText = (sentence: {
+  Content: string;
+  viEquivalent?: string | null;
+  csTranscript?: string | null;
+}) => sentence.viEquivalent?.trim() || sentence.Content || sentence.csTranscript?.trim() || '';
+
+const getPlainText = (sentence: {
+  PlainText?: string | null;
+  csTranscript?: string | null;
+  viEquivalent?: string | null;
+  Content: string;
+}) => sentence.csTranscript?.trim() || sentence.PlainText?.trim() || sentence.viEquivalent?.trim() || sentence.Content || '';
+
+
 // Type for pending recordings stored locally
 interface PendingRecording {
   audioBlob: Blob;
@@ -55,6 +69,7 @@ const RecordingPage: React.FC = () => {
   } = userState || {};
   const [mode, setMode] = useState<'existing' | 'new'>('existing');
   const [customSentence, setCustomSentence] = useState<string>('');
+  const [currentContentText, setCurrentContentText] = useState<string>('');
   const [currentPlainText, setCurrentPlainText] = useState<string>('');
   const [recordedTypes, setRecordedTypes] = useState<Set<'plaintext' | 'content'>>(new Set());
   const [pendingRecordings, setPendingRecordings] = useState<PendingRecording[]>([]);
@@ -82,7 +97,8 @@ const RecordingPage: React.FC = () => {
 
     // Fetch available sentences when component mounts or userInfo changes
     if (mode === 'existing') {
-      // Reset PlainText state on mount/fetch
+      // Reset sentence display state on mount/fetch
+      setCurrentContentText('');
       setCurrentPlainText('');
       // Call the API endpoint (personId is not needed for the new endpoint)
       dispatch(fetchAvailableSentences(''));
@@ -93,12 +109,12 @@ const RecordingPage: React.FC = () => {
   useEffect(() => {
     if (availableSentences && availableSentences.length > 0 && mode === 'existing') {
       const firstSentence = availableSentences[0];
-      // CONTENT = viEquivalent (bản dịch thuần Việt)
-      dispatch(setCurrentSentence(firstSentence.viEquivalent?.trim() || firstSentence.Content || ''));
+      const nextContentText = getContentText(firstSentence);
+      const nextPlainText = getPlainText(firstSentence);
+      dispatch(setCurrentSentence(nextContentText));
       dispatch(setCurrentSentenceId(firstSentence.SentenceID));
-      // PLAINTEXT = csTranscript (có tag [vi]...[en]...)
-      setCurrentPlainText(firstSentence.csTranscript?.trim() || '');
-      // Reset recorded types and pending recordings
+      setCurrentContentText(nextContentText);
+      setCurrentPlainText(nextPlainText);
       setRecordedTypes(new Set());
       setPendingRecordings([]);
     }
@@ -201,13 +217,13 @@ const RecordingPage: React.FC = () => {
           const nextSentence = pickNextSentence(updatedSentences, justRecordedSentenceIds);
 
           if (nextSentence) {
-            // Move to next available sentence
-            // CONTENT = viEquivalent
-            dispatch(setCurrentSentence(nextSentence.viEquivalent?.trim() || nextSentence.Content || ''));
+            const nextContentText = getContentText(nextSentence);
+            const nextPlainText = getPlainText(nextSentence);
+            dispatch(setCurrentSentence(nextContentText));
             dispatch(setCurrentSentenceId(nextSentence.SentenceID));
             dispatch(setCurrentRecordingIndex(recordings.length + 2));
-            // PLAINTEXT = csTranscript
-            setCurrentPlainText(nextSentence.csTranscript?.trim() || '');
+            setCurrentContentText(nextContentText);
+            setCurrentPlainText(nextPlainText);
             setRecordedTypes(new Set());
             setPendingRecordings([]);
           } else {
@@ -224,11 +240,8 @@ const RecordingPage: React.FC = () => {
       } else {
         // Chưa đủ 2 bản → chuyển sang loại còn lại
         if (recordedType === 'plaintext') {
-          const firstSentence = availableSentences[0];
-          // Chuyển sang CONTENT = viEquivalent
-          dispatch(setCurrentSentence(firstSentence.viEquivalent?.trim() || firstSentence.Content || ''));
+          dispatch(setCurrentSentence(currentContentText));
         } else {
-          // Chuyển sang PLAINTEXT = csTranscript
           dispatch(setCurrentSentence(currentPlainText));
         }
       }
@@ -264,6 +277,7 @@ const RecordingPage: React.FC = () => {
     // Reset user state and navigate back to home page
     dispatch(resetUserState());
     clearPersistedUserData();
+    setCurrentContentText('');
     setCurrentPlainText('');
     setRecordedTypes(new Set());
     setPendingRecordings([]);
@@ -382,6 +396,7 @@ const RecordingPage: React.FC = () => {
           <button
             onClick={() => {
               setMode('existing');
+              setCurrentContentText('');
               setCurrentPlainText('');
               setRecordedTypes(new Set());
               setPendingRecordings([]);
@@ -458,8 +473,8 @@ const RecordingPage: React.FC = () => {
                     </span>
                     <button
                       onClick={() => {
-                        dispatch(setCurrentSentence(currentSentence));
-                        dispatch(setCurrentSentenceId(availableSentences[0]?.SentenceID || null));
+                        dispatch(setCurrentSentence(currentContentText));
+                        dispatch(setCurrentSentenceId(currentSentenceId));
                       }}
                       className={cn(
                         "w-full text-left px-4 py-3 rounded-xl border-2 transition-all duration-200",
@@ -472,7 +487,7 @@ const RecordingPage: React.FC = () => {
                         "block text-base md:text-lg leading-relaxed",
                         !recordedTypes.has('content') ? "text-purple-700 font-semibold" : "text-gray-600 font-medium"
                       )}>
-                        {currentSentence || 'Đang tải...'}
+                        {currentContentText || 'Đang tải...'}
                       </Text>
                     </button>
                   </div>
@@ -487,7 +502,7 @@ const RecordingPage: React.FC = () => {
                       <button
                         onClick={() => {
                           dispatch(setCurrentSentence(currentPlainText));
-                          dispatch(setCurrentSentenceId(availableSentences[0]?.SentenceID || null));
+                          dispatch(setCurrentSentenceId(currentSentenceId));
                         }}
                         className={cn(
                           "w-full text-left px-4 py-3 rounded-xl border-2 transition-all duration-200",

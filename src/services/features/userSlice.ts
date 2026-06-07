@@ -495,16 +495,23 @@ export const fetchAvailableSentences = createAsyncThunk(
       const sentences = responseData?.data || [];
 
       // Map BE response (snake/lower) → FE format (uppercase + camel)
-      return sentences.map((s: any) => ({
-        SentenceID: s.SentenceID || s._id,
-        Content: s.csTranscript || s.Content || '',
-        csTranscript: s.csTranscript || null,
-        viEquivalent: s.viEquivalent || null,
-        PlainText: s.viEquivalent || s.PlainText || null,
-        CreatedAt: s.CreatedAt || s.createdAt || '',
-        Status: s.Status ?? s.status ?? 1,
-        domain: s.domain ?? null,
-      }));
+      return sentences.map((s: any) => {
+        const csTranscript = s.csTranscript || null;
+        const viEquivalent = s.viEquivalent || null;
+        const legacyContent = s.Content || '';
+        const legacyPlainText = s.PlainText || null;
+
+        return {
+          SentenceID: s.SentenceID || s._id,
+          Content: viEquivalent || legacyContent || csTranscript || '',
+          csTranscript,
+          viEquivalent,
+          PlainText: csTranscript || legacyPlainText || viEquivalent || null,
+          CreatedAt: s.CreatedAt || s.createdAt || '',
+          Status: s.Status ?? s.status ?? 1,
+          domain: s.domain ?? null,
+        };
+      });
     } catch (error) {
       console.error("Error in fetchAvailableSentences:", error);
       throw error;

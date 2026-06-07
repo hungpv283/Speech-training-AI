@@ -15,12 +15,17 @@ export interface Sentence {
 
 // Map BE response sang format chuẩn FE
 function mapSentence(raw: any): Sentence {
+  const csTranscript = raw.csTranscript || null;
+  const viEquivalent = raw.viEquivalent || null;
+  const legacyContent = raw.Content || '';
+  const legacyPlainText = raw.PlainText || null;
+
   return {
     SentenceID: raw.SentenceID || raw._id || '',
-    Content: raw.csTranscript || raw.Content || '',
-    csTranscript: raw.csTranscript || null,
-    viEquivalent: raw.viEquivalent || null,
-    PlainText: raw.viEquivalent || raw.PlainText || null,
+    Content: viEquivalent || legacyContent || csTranscript || '',
+    csTranscript,
+    viEquivalent,
+    PlainText: csTranscript || legacyPlainText || viEquivalent || null,
     CreatedAt: raw.CreatedAt || raw.createdAt || '',
     Status: raw.Status ?? raw.status ?? 1,
     domain: raw.domain ?? null,
