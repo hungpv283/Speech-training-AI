@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Typography, Tag, Input, message, Spin, Modal, Alert } from 'antd';
-import { BookOutlined, PlusOutlined, AudioOutlined, ReloadOutlined, RightOutlined, LogoutOutlined, CheckOutlined, XFilled } from '@ant-design/icons';
+import { BookOutlined, PlusOutlined, AudioOutlined, ReloadOutlined, RightOutlined, LogoutOutlined, CheckOutlined, XFilled, PauseOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/services/store/store';
 import {
@@ -73,6 +73,7 @@ const RecordingPage: React.FC = () => {
   const [currentPlainText, setCurrentPlainText] = useState<string>('');
   const [recordedTypes, setRecordedTypes] = useState<Set<'plaintext' | 'content'>>(new Set());
   const [pendingRecordings, setPendingRecordings] = useState<PendingRecording[]>([]);
+  const [activeRecordType, setActiveRecordType] = useState<'plaintext' | 'content'>('content');
   const [isPlaying, setIsPlaying] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [submittingSentence, setSubmittingSentence] = useState(false);
@@ -115,6 +116,7 @@ const RecordingPage: React.FC = () => {
       dispatch(setCurrentSentenceId(firstSentence.SentenceID));
       setCurrentContentText(nextContentText);
       setCurrentPlainText(nextPlainText);
+      setActiveRecordType('content');
       setRecordedTypes(new Set());
       setPendingRecordings([]);
     }
@@ -133,6 +135,28 @@ const RecordingPage: React.FC = () => {
       const errMsg = error instanceof Error ? error.message : 'Không thể truy cập micro. Vui lòng cho phép quyền và thử lại.';
       message.error(errMsg);
     }
+  };
+
+  const handleStartRecordingForType = async (type: 'plaintext' | 'content') => {
+    if (recordedTypes.has(type)) {
+      return;
+    }
+
+    if (audioUrl) {
+      resetRecording();
+      setIsPlaying(false);
+    }
+
+    const sentenceToRecord = type === 'plaintext' ? currentPlainText : currentContentText;
+    if (!sentenceToRecord) {
+      message.warning('Không có nội dung để ghi âm');
+      return;
+    }
+
+    setActiveRecordType(type);
+    dispatch(setCurrentSentence(sentenceToRecord));
+    dispatch(setCurrentSentenceId(currentSentenceId));
+    await handleStartRecording();
   };
 
   const handleStopRecording = () => {
@@ -156,9 +180,8 @@ const RecordingPage: React.FC = () => {
     }
 
     if (mode === 'existing' && currentSentenceId) {
-      // Determine which type was recorded
-      const isPlainTextRecording = currentSentence === currentPlainText;
-      const recordedType = isPlainTextRecording ? 'plaintext' : 'content';
+      const recordedType = activeRecordType;
+      const sentenceForType = recordedType === 'plaintext' ? currentPlainText : currentContentText;
       
       // Lưu tạm vào pendingRecordings (chưa upload)
       const newPendingRecording: PendingRecording = {
@@ -167,7 +190,7 @@ const RecordingPage: React.FC = () => {
         duration: recordingTime,
         type: recordedType,
         sentenceId: currentSentenceId,
-        sentence: currentSentence,
+        sentence: sentenceForType,
       };
       
       const newPendingRecordings = [...pendingRecordings, newPendingRecording];
@@ -224,10 +247,12 @@ const RecordingPage: React.FC = () => {
             dispatch(setCurrentRecordingIndex(recordings.length + 2));
             setCurrentContentText(nextContentText);
             setCurrentPlainText(nextPlainText);
+            setActiveRecordType('content');
             setRecordedTypes(new Set());
             setPendingRecordings([]);
           } else {
             message.info('Đã ghi âm đủ cả 2 bản. Không còn câu nào cần ghi âm.');
+            setActiveRecordType('content');
             setRecordedTypes(new Set());
             setPendingRecordings([]);
           }
@@ -239,11 +264,10 @@ const RecordingPage: React.FC = () => {
         }
       } else {
         // Chưa đủ 2 bản → chuyển sang loại còn lại
-        if (recordedType === 'plaintext') {
-          dispatch(setCurrentSentence(currentContentText));
-        } else {
-          dispatch(setCurrentSentence(currentPlainText));
-        }
+        const nextType = recordedType === 'plaintext' ? 'content' : 'plaintext';
+        const nextSentenceText = nextType === 'plaintext' ? currentPlainText : currentContentText;
+        setActiveRecordType(nextType);
+        dispatch(setCurrentSentence(nextSentenceText));
       }
     } else {
       // For new mode, just save locally (no API call for custom sentences)
@@ -430,7 +454,7 @@ const RecordingPage: React.FC = () => {
         {/* Suggested / Custom Sentence Card */}
         {mode === 'existing' && (
           <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-[1px] shadow-md">
-            <div className="bg-white rounded-[1rem] p-4 md:p-5 flex flex-col gap-2">
+            <div className="bg-white rounded-[1rem] p-4 md:p-5 flex flex-col gap-4">
               {loadingSentences ? (
                 <div className="flex justify-center items-center py-4">
                   <Spin size="large" />
@@ -445,15 +469,15 @@ const RecordingPage: React.FC = () => {
                 <>
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center">
-                        <BookOutlined className="text-blue-600 text-xs" />
+                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                        <BookOutlined className="text-blue-600 text-sm" />
                       </div>
                       <div className="flex flex-col">
                         <span className="text-[10px] font-semibold tracking-[0.15em] text-blue-500 uppercase">
                           Câu gợi ý
                         </span>
-                        <span className="text-[10px] text-gray-500">
-                          Chọn một câu để ghi âm
+                        <span className="text-xs text-gray-500">
+                          Mỗi dòng có một nút ghi âm riêng
                         </span>
                       </div>
                     </div>
@@ -464,64 +488,93 @@ const RecordingPage: React.FC = () => {
                       Câu {currentRecordingIndex + 1}
                     </Tag>
                   </div>
-                  
-                  {/* Content Selection - viEquivalent (bản dịch thuần Việt) */}
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-medium text-purple-600 uppercase tracking-wide flex items-center gap-1">
-                      Content
-                      {recordedTypes.has('content') && <CheckOutlined className="text-green-500" />}
-                    </span>
-                    <button
-                      onClick={() => {
-                        dispatch(setCurrentSentence(currentContentText));
-                        dispatch(setCurrentSentenceId(currentSentenceId));
-                      }}
-                      className={cn(
-                        "w-full text-left px-4 py-3 rounded-xl border-2 transition-all duration-200",
-                        !recordedTypes.has('content')
-                          ? "border-purple-500 bg-purple-50 shadow-md"
-                          : "border-gray-200 bg-gray-50 hover:border-purple-300"
-                      )}
-                    >
-                      <Text className={cn(
-                        "block text-base md:text-lg leading-relaxed",
-                        !recordedTypes.has('content') ? "text-purple-700 font-semibold" : "text-gray-600 font-medium"
-                      )}>
-                        {currentContentText || 'Đang tải...'}
-                      </Text>
-                    </button>
+
+                  <div className="space-y-3">
+                    {([
+                      {
+                        type: 'plaintext' as const,
+                        label: 'PlainText',
+                        text: currentPlainText,
+                        color: 'blue',
+                        activeClasses: 'border-blue-500 bg-blue-50 shadow-md',
+                        idleClasses: 'border-gray-200 bg-white hover:border-blue-300',
+                        iconClasses: 'bg-blue-600 hover:bg-blue-700',
+                        statusTextClasses: 'text-blue-700',
+                      },
+                      {
+                        type: 'content' as const,
+                        label: 'Content',
+                        text: currentContentText,
+                        color: 'purple',
+                        activeClasses: 'border-purple-500 bg-purple-50 shadow-md',
+                        idleClasses: 'border-gray-200 bg-white hover:border-purple-300',
+                        iconClasses: 'bg-purple-600 hover:bg-purple-700',
+                        statusTextClasses: 'text-purple-700',
+                      },
+                    ]).map((item) => {
+                      if (!item.text) return null;
+
+                      const isRecorded = recordedTypes.has(item.type);
+                      const isActive = activeRecordType === item.type;
+                      const isThisRecording = isRecording && isActive;
+
+                      return (
+                        <div
+                          key={item.type}
+                          className={cn(
+                            'rounded-2xl border-2 px-4 py-4 transition-all duration-200',
+                            isActive || isRecorded ? item.activeClasses : item.idleClasses
+                          )}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className={cn(
+                                  'text-[11px] font-semibold uppercase tracking-wide',
+                                  item.type === 'plaintext' ? 'text-blue-600' : 'text-purple-600'
+                                )}>
+                                  {item.label}
+                                </span>
+                                {isRecorded && <CheckOutlined className="text-green-500 text-sm" />}
+                                {isThisRecording && <span className="text-[11px] text-red-500 font-semibold">Đang ghi...</span>}
+                              </div>
+                              <p className={cn(
+                                'mb-0 text-base md:text-lg leading-relaxed break-words',
+                                isActive ? item.statusTextClasses : 'text-gray-700'
+                              )}>
+                                {item.text}
+                              </p>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isThisRecording) {
+                                  handleStopRecording();
+                                  return;
+                                }
+                                void handleStartRecordingForType(item.type);
+                              }}
+                              disabled={uploading || (isRecording && !isActive) || isRecorded || !item.text}
+                              className={cn(
+                                'h-14 w-14 md:h-16 md:w-16 rounded-full flex items-center justify-center text-white shadow-lg transition-all duration-200 shrink-0',
+                                'disabled:opacity-50 disabled:cursor-not-allowed',
+                                isThisRecording ? 'bg-red-500 hover:bg-red-600' : item.iconClasses
+                              )}
+                              title={isThisRecording ? 'Dừng ghi âm' : `Ghi âm ${item.label}`}
+                            >
+                              {isThisRecording ? (
+                                <PauseOutlined style={{ fontSize: '22px' }} />
+                              ) : (
+                                <AudioOutlined style={{ fontSize: '22px' }} />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
 
-                  {/* PlainText Selection - csTranscript (có tags [vi]...[en]...) */}
-                  {currentPlainText && (
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] font-medium text-blue-600 uppercase tracking-wide flex items-center gap-1">
-                        PlainText
-                        {recordedTypes.has('plaintext') && <CheckOutlined className="text-green-500" />}
-                      </span>
-                      <button
-                        onClick={() => {
-                          dispatch(setCurrentSentence(currentPlainText));
-                          dispatch(setCurrentSentenceId(currentSentenceId));
-                        }}
-                        className={cn(
-                          "w-full text-left px-4 py-3 rounded-xl border-2 transition-all duration-200",
-                          !recordedTypes.has('plaintext')
-                            ? "border-blue-500 bg-blue-50 shadow-md"
-                            : "border-gray-200 bg-gray-50 hover:border-blue-300"
-                        )}
-                      >
-                        <Text className={cn(
-                          "block text-base md:text-lg leading-relaxed",
-                          !recordedTypes.has('plaintext') ? "text-blue-700 font-semibold" : "text-gray-600 font-medium"
-                        )}>
-                          {currentPlainText}
-                        </Text>
-                      </button>
-                    </div>
-                  )}
-                  
-                  {/* Status indicator */}
                   <div className="text-center py-1">
                     <Text className="text-xs text-gray-500">
                       Đã ghi âm: {recordedTypes.size}/2 bản
@@ -591,10 +644,9 @@ const RecordingPage: React.FC = () => {
           </div>
         )}
 
-        {/* Recording Section - Fixed layout to prevent button movement (only for existing mode) */}
-        {mode === 'existing' && !audioUrl && (
-          <div className="flex flex-col" style={{ minHeight: '300px' }}>
-            {/* Error alert for recording issues (e.g., permissions / unsupported) */}
+        {/* Recording / Review Section for active sentence */}
+        {mode === 'existing' && (isRecording || audioUrl || lastError) && (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 md:p-5">
             {lastError && (
               <div className="mb-3">
                 <Alert
@@ -605,115 +657,68 @@ const RecordingPage: React.FC = () => {
                 />
               </div>
             )}
-            {/* Recording Waveform Container - Reduced height to bring button closer */}
-            <div style={{ height: isRecording ? '100px' : '48px', overflow: 'hidden', marginBottom: '4px', transition: 'height 0.3s ease' }}>
-              {isRecording && mediaStream ? (
+
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <Tag color={activeRecordType === 'plaintext' ? 'blue' : 'purple'} className="rounded-full px-3 py-1 text-sm font-semibold">
+                {activeRecordType === 'plaintext' ? 'PlainText' : 'Content'}
+              </Tag>
+              <Text className="text-sm text-gray-500">
+                {activeRecordType === 'plaintext' ? currentPlainText : currentContentText}
+              </Text>
+            </div>
+
+            {isRecording && mediaStream ? (
+              <div className="space-y-4">
                 <RecordingWaveform mediaStream={mediaStream} isRecording={isRecording} />
-              ) : !isRecording && !audioUrl ? (
-                <div className="h-full flex items-center justify-center">
-                  <Text className="text-gray-400 text-sm">Nhấn nút bên dưới để ghi âm</Text>
+                <div className="flex flex-col items-center gap-2">
+                  <Button
+                    danger
+                    size="large"
+                    icon={<XFilled />}
+                    onClick={handleStopRecording}
+                    className="h-11 px-6 rounded-xl font-semibold"
+                  >
+                    Dừng ghi âm
+                  </Button>
+                  <Text className="text-sm text-red-500 font-medium">
+                    Đang ghi âm... Nhấn để dừng
+                  </Text>
                 </div>
-              ) : null}
-            </div>
-
-            {/* Recording Button Container - Moved closer */}
-            <div className="flex flex-col items-center justify-center" style={{ marginTop: '4px' }}>
-              
-              {/* Badge showing which sentence type is being recorded */}
-              <div className={cn(
-                "mb-3 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200",
-                currentSentence === currentPlainText
-                  ? "bg-blue-50 border-2 border-blue-500 text-blue-700"
-                  : "bg-purple-50 border-2 border-purple-500 text-purple-700"
-              )}>
-                <span>Đang ghi: </span>
-                <span className="font-bold">
-                  {currentSentence === currentPlainText ? "PlainText" : "Content"}
-                </span>
-                <span className="mx-2">•</span>
-                <span className="line-clamp-1 max-w-[200px]">
-                  "{currentSentence === currentPlainText ? currentPlainText : currentSentence}"
-                </span>
               </div>
-              
-              {/* Button - Fixed size, always in same position (same size for both states) */}
-              <button
-                onClick={isRecording ? handleStopRecording : handleStartRecording}
-                className={cn(
-                  "rounded-full flex items-center justify-center text-white",
-                  "transition-all duration-200",
-                  "shadow-xl hover:shadow-2xl active:scale-95",
-                  "focus:outline-none focus:ring-4 focus:ring-offset-2",
-                  isRecording
-                    ? "bg-red-500 hover:bg-red-600 ring-4 ring-red-200 focus:ring-red-300"
-                    : "bg-blue-600 hover:bg-blue-700 ring-4 ring-blue-200 focus:ring-blue-300"
-                )}
-                style={{
-                  width: '96px',
-                  height: '96px',
-                  minWidth: '96px',
-                  minHeight: '96px',
-                  maxWidth: '96px',
-                  maxHeight: '96px',
-                  flexShrink: 0
-                }}
-              >
-                {isRecording ? (
-                  <XFilled style={{ fontSize: '32px' }} />
-                ) : (
-                  <AudioOutlined style={{ fontSize: '32px' }} />
-                )}
-              </button>
-              {/* Text below button - Fixed height to prevent layout shift */}
-              <div className="h-6 mt-3 flex items-center justify-center px-4" style={{ minHeight: '24px' }}>
-                <Text className={cn(
-                  "text-xs md:text-sm font-medium transition-all duration-200 text-center",
-                  isRecording ? "text-red-600" : "text-gray-500"
-                )}>
-                  {isRecording ? "Đang ghi âm... Nhấn để dừng" : "Nhấn để bắt đầu ghi âm"}
-                </Text>
-              </div>
-            </div>
-          </div>
-        )}
+            ) : audioUrl ? (
+              <div className="space-y-4">
+                <div style={{ height: '228px' }}>
+                  <AudioWaveform
+                    audioUrl={audioUrl}
+                    isPlaying={isPlaying}
+                    onPlay={handlePlayPause}
+                    onPause={handlePlayPause}
+                  />
+                </div>
 
-        {/* Audio Waveform and Control Buttons Section (only for existing mode) */}
-        {mode === 'existing' && audioUrl && !isRecording && (
-          <div className="flex flex-col" style={{ minHeight: '300px' }}>
-            {/* Audio Waveform Container - Fixed height matching RecordingWaveform */}
-            <div style={{ height: '228px', marginBottom: '8px' }}>
-              <AudioWaveform
-                audioUrl={audioUrl}
-                isPlaying={isPlaying}
-                onPlay={handlePlayPause}
-                onPause={handlePlayPause}
-              />
-            </div>
-
-            {/* Control Buttons Container - Same position as recording button */}
-            <div className="flex flex-col items-center justify-center flex-1" style={{ minHeight: '140px', marginTop: '16px' }}>
-              <div className="flex flex-wrap justify-center gap-2 md:gap-3">
-                <Button
-                  size="large"
-                  icon={<ReloadOutlined />}
-                  onClick={handleRetry}
-                  className="h-10 md:h-11 px-5 md:px-6 rounded-xl border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 font-semibold transition-all shadow-sm hover:shadow-md text-sm md:text-base"
-                >
-                  Thử lại
-                </Button>
-                <Button
-                  type="primary"
-                  size="large"
-                  icon={<RightOutlined />}
-                  onClick={handleSaveRecording}
-                  loading={uploading}
-                  disabled={uploading}
-                  className="h-10 md:h-11 px-5 md:px-6 rounded-xl bg-blue-600 border-none hover:bg-blue-700 shadow-md hover:shadow-lg font-semibold transition-all text-sm md:text-base"
-                >
-                  {uploading ? 'Đang tải lên...' : 'Tiếp tục →'}
-                </Button>
+                <div className="flex flex-wrap justify-center gap-2 md:gap-3">
+                  <Button
+                    size="large"
+                    icon={<ReloadOutlined />}
+                    onClick={handleRetry}
+                    className="h-10 md:h-11 px-5 md:px-6 rounded-xl border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 font-semibold transition-all shadow-sm hover:shadow-md text-sm md:text-base"
+                  >
+                    Thử lại
+                  </Button>
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<RightOutlined />}
+                    onClick={handleSaveRecording}
+                    loading={uploading}
+                    disabled={uploading}
+                    className="h-10 md:h-11 px-5 md:px-6 rounded-xl bg-blue-600 border-none hover:bg-blue-700 shadow-md hover:shadow-lg font-semibold transition-all text-sm md:text-base"
+                  >
+                    {uploading ? 'Đang tải lên...' : 'Lưu bản ghi'}
+                  </Button>
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
         )}
 
