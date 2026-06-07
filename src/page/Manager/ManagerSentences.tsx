@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Typography, Table, Button, Space, Spin, Empty, Modal, Form, Input, message, Popconfirm, Row, Col, Tag, Select } from 'antd';
-import { FileTextOutlined, CheckCircleOutlined, EditOutlined, DeleteOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { FileTextOutlined, CheckCircleOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CloseCircleOutlined, ImportOutlined } from '@ant-design/icons';
 import SidebarManager from '@/components/SidebarManager';
-import { getSentencesWithMeta, createSentence, updateSentence, deleteSentence, approveSentence, rejectSentence, Sentence } from '@/services/features/recordingSlice';
+import { getSentencesWithMeta, createSentence, updateSentence, deleteSentence, approveSentence, rejectSentence, uploadSentenceImport, Sentence } from '@/services/features/recordingSlice';
+import { getSentenceDisplayText } from '@/services/features/userSlice';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -21,6 +22,8 @@ const ManagerSentences: React.FC = () => {
   const [pendingCountFromApi, setPendingCountFromApi] = useState<number | null>(null);
   const [recordedCountFromApi, setRecordedCountFromApi] = useState<number | null>(null);
   const [rejectedCountFromApi, setRejectedCountFromApi] = useState<number | null>(null);
+  const [importingJson, setImportingJson] = useState(false);
+  const jsonImportInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setPage(1); // Reset về trang 1 khi filter thay đổi
@@ -61,6 +64,12 @@ const ManagerSentences: React.FC = () => {
     } finally {
       setLoadingSentences(false);
     }
+  };
+
+  const handleCreateSentence = () => {
+    setEditingSentence(null);
+    form.resetFields();
+    setIsModalVisible(true);
   };
 
   const handleEditSentence = (sentence: Sentence) => {
@@ -155,12 +164,45 @@ const ManagerSentences: React.FC = () => {
     setEditingSentence(null);
   };
 
+  const handleImportJsonClick = () => {
+    jsonImportInputRef.current?.click();
+  };
+
+  const handleJsonFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setImportingJson(true);
+    try {
+      await uploadSentenceImport(file);
+      message.success('Import file thành công');
+      fetchSentences(page, pageSize, statusFilter);
+    } catch (err: unknown) {
+      const errObj = err as { message?: string };
+      message.error(errObj?.message ?? 'Import file thất bại');
+    } finally {
+      setImportingJson(false);
+    }
+  };
+
   const sentenceColumns = [
     {
       title: 'Nội dung',
-      dataIndex: 'Content',
       key: 'Content',
-      render: (text: string) => <span className="text-gray-900">{text}</span>,
+      render: (_: unknown, record: Sentence) => (
+        <div className="flex flex-col gap-1">
+          {record.csTranscript && (
+            <span className="text-gray-900">{record.csTranscript}</span>
+          )}
+          {record.viEquivalent && (
+            <span className="text-gray-500 italic">{record.viEquivalent}</span>
+          )}
+          {!record.csTranscript && !record.viEquivalent && (
+            <span className="text-gray-900">{getSentenceDisplayText(record)}</span>
+          )}
+        </div>
+      ),
     },
     {
       title: 'Hành động',
@@ -224,26 +266,29 @@ const ManagerSentences: React.FC = () => {
     },
     {
       title: 'Trạng thái',
-      dataIndex: 'Status',
       key: 'Status',
       width: 150,
-      render: (status: number) => {
+      render: (_: unknown, record: Sentence) => {
+        const status = record.Status ?? (record as Sentence & { status?: number }).status;
         const statusConfig: { [key: number]: { color: string; label: string } } = {
           0: { color: 'default', label: 'Chờ duyệt' },
           1: { color: 'green', label: 'Đã duyệt' },
           2: { color: 'blue', label: 'Đã thu âm' },
           3: { color: 'red', label: 'Bị từ chối' },
         };
-        const config = statusConfig[status] || { color: 'default', label: 'Unknown' };
+        const config =
+          typeof status === 'number'
+            ? statusConfig[status] || { color: 'default', label: 'Unknown' }
+            : { color: 'default', label: '-' };
         return <Tag color={config.color}>{config.label}</Tag>;
       },
     },
     {
       title: 'Ngày tạo',
-      dataIndex: 'CreatedAt',
       key: 'CreatedAt',
       width: 180,
-      render: (date: string) => {
+      render: (_: unknown, record: Sentence) => {
+        const date = record.CreatedAt ?? (record as Sentence & { createdAt?: string }).createdAt;
         if (!date) return '-';
         return new Date(date).toLocaleString('vi-VN');
       },
@@ -381,8 +426,32 @@ const ManagerSentences: React.FC = () => {
                     />
                   </div>
                 </div>
-               
-              
+                
+                <Space>
+                  <input
+                    ref={jsonImportInputRef}
+                    type="file"
+                    accept="application/json,.json"
+                    className="hidden"
+                    onChange={handleJsonFileChange}
+                  />
+                  <Button
+                    icon={<ImportOutlined />}
+                    onClick={handleImportJsonClick}
+                    loading={importingJson}
+                    className="bg-amber-50 hover:bg-amber-100 border-amber-300 text-amber-600"
+                  >
+                    Import JSON
+                  </Button>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={handleCreateSentence}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Tạo câu mới
+                  </Button>
+                </Space>
               </div>
               {loadingSentences ? (
                 <div className="flex justify-center py-12">

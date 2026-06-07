@@ -327,16 +327,12 @@ export const uploadRecording = async (
   }
 };
 
-/** `collection` value for POST import/upload when importing sentences. */
-export const SENTENCE_IMPORT_COLLECTION = "sentence_new";
-
 export const uploadSentenceImport = async (file: File): Promise<unknown> => {
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("collection", SENTENCE_IMPORT_COLLECTION);
 
   try {
-    const response = await axiosInstance.post("import/upload", formData, {
+    const response = await axiosInstance.post("sentences-new-make/import-file", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
