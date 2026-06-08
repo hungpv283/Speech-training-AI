@@ -132,7 +132,8 @@ const ManagerUsers: React.FC = () => {
       message.success('Tải xuống thành công');
     } catch (error) {
       console.error('Failed to download recordings:', error);
-      message.error('Tải xuống thất bại');
+      const errMessage = (error as { message?: string })?.message || 'Tải xuống thất bại';
+      message.error(errMessage);
     } finally {
       setDownloadingRecordings(false);
     }
@@ -495,7 +496,7 @@ const ManagerUsers: React.FC = () => {
                     key={`table-${refreshKey}-${localPageSize}`}
                     columns={columns}
                     dataSource={users}
-                    rowKey={(record, index) => `${record.PersonID}-${index}-${refreshKey}`}
+                    rowKey={(record) => `${record.PersonID}-${refreshKey}`}
                     pagination={{
                       pageSize: localPageSize,
                       showSizeChanger: false,

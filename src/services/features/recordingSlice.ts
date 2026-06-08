@@ -506,7 +506,7 @@ export const downloadRecordings = async (
   params: DownloadRecordingsParams
 ): Promise<Blob> => {
   try {
-    const response = await axiosInstance.get<Blob>("recordings-new/download", {
+    const response = await axiosInstance.get<Blob>("recordings-new-make/download", {
       params: {
         emails: params.emails.join(','),
         dateFrom: params.dateFrom,
@@ -517,6 +517,21 @@ export const downloadRecordings = async (
     });
     return response.data;
   } catch (error: any) {
+    if (error.response?.data instanceof Blob) {
+      const text = await error.response.data.text();
+
+      if (text) {
+        try {
+          const parsed = JSON.parse(text);
+          throw parsed;
+        } catch (parseError) {
+          if (!(parseError instanceof SyntaxError)) {
+            throw parseError;
+          }
+        }
+      }
+    }
+
     throw error.response?.data || { message: "Download recordings failed" };
   }
 };
@@ -552,7 +567,7 @@ export const getTopRecorders = async (
 ): Promise<TopRecorder[]> => {
   try {
     const response = await axiosInstance.get<TopRecordersResponse>(
-      "users-new/top-recorders",
+      "users/top-recorders",
       {
         params: {
           status: params?.status,

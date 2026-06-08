@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Typography, Tag, Input, message, Spin, Modal, Alert } from 'antd';
-import { BookOutlined, PlusOutlined, AudioOutlined, ReloadOutlined, RightOutlined, LogoutOutlined, CheckOutlined, XFilled, PauseOutlined } from '@ant-design/icons';
+import { BookOutlined, PlusOutlined, AudioOutlined, ReloadOutlined, RightOutlined, LogoutOutlined, CheckOutlined, XFilled, PauseOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/services/store/store';
 import {
@@ -21,6 +21,30 @@ import { cn } from '@/lib/utils';
 import { clearPersistedUserData } from '@/lib/storageUtils';
 
 const { Title, Text } = Typography;
+
+const RECORDING_GUIDE_STORAGE_KEY = 'recording-onboarding-seen';
+const RECORDING_GUIDE_STEPS = [
+  {
+    title: 'Bước 1: Chọn câu để ghi âm',
+    description: 'Ở chế độ đọc câu có sẵn, bạn sẽ thấy 2 dòng: PlainText và Content. Mỗi dòng có một nút micro riêng để bắt đầu ghi.',
+  },
+  {
+    title: 'Bước 2: Cho phép dùng micro',
+    description: 'Khi trình duyệt hỏi quyền truy cập micro, hãy bấm Cho phép để hệ thống có thể ghi âm.',
+  },
+  {
+    title: 'Bước 3: Bấm nút micro và đọc rõ ràng',
+    description: 'Bấm vào nút micro ở dòng bạn muốn ghi, sau đó đọc chậm, rõ và giữ điện thoại hoặc micro ổn định.',
+  },
+  {
+    title: 'Bước 4: Dừng và nghe lại',
+    description: 'Sau khi đọc xong, bấm Dừng ghi âm. Bạn có thể nghe lại, chọn Thử lại nếu chưa ưng ý hoặc Lưu bản ghi để tiếp tục.',
+  },
+  {
+    title: 'Bước 5: Hoàn thành đủ 2 bản',
+    description: 'Mỗi câu cần ghi đủ 2 bản: PlainText và Content. Khi hoàn thành đủ 2 bản, hệ thống sẽ tự lưu và chuyển sang câu tiếp theo.',
+  },
+] as const;
 
 const pickNextSentence = (
   sentences: Array<{ SentenceID: string; Content: string; csTranscript?: string | null; viEquivalent?: string | null }>,
@@ -77,6 +101,7 @@ const RecordingPage: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [submittingSentence, setSubmittingSentence] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   const {
     isRecording,
@@ -126,6 +151,17 @@ const RecordingPage: React.FC = () => {
     dispatch(setIsRecording(isRecording));
     dispatch(setRecordingTime(recordingTime));
   }, [isRecording, recordingTime, dispatch]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const hasSeenGuide = window.localStorage.getItem(RECORDING_GUIDE_STORAGE_KEY);
+    if (!hasSeenGuide) {
+      setIsGuideOpen(true);
+    }
+  }, []);
 
   const handleStartRecording = async () => {
     try {
@@ -297,6 +333,17 @@ const RecordingPage: React.FC = () => {
     setIsPlaying(!isPlaying);
   };
 
+  const handleCloseGuide = () => {
+    setIsGuideOpen(false);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(RECORDING_GUIDE_STORAGE_KEY, 'true');
+    }
+  };
+
+  const handleOpenGuide = () => {
+    setIsGuideOpen(true);
+  };
+
   const handleExit = () => {
     // Reset user state and navigate back to home page
     dispatch(resetUserState());
@@ -387,10 +434,55 @@ const RecordingPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-white py-3 px-4 md:px-8">
       <div className="max-w-4xl mx-auto space-y-3">
+        <Modal
+          open={isGuideOpen}
+          onCancel={handleCloseGuide}
+          onOk={handleCloseGuide}
+          okText="Bắt đầu ghi âm"
+          cancelText="Đóng"
+          centered
+          width={720}
+          title={<span className="text-lg font-semibold text-blue-700">Hướng dẫn ghi âm cho người mới</span>}
+        >
+          <div className="space-y-3 py-2">
+            <Alert
+              type="info"
+              showIcon
+              message="Chỉ cần làm lần lượt theo các bước bên dưới là có thể bắt đầu ghi âm ngay."
+            />
+            <div className="space-y-3">
+              {RECORDING_GUIDE_STEPS.map((step, index) => (
+                <div
+                  key={step.title}
+                  className="flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50/60 px-4 py-3"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">
+                    {index + 1}
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900">{step.title}</div>
+                    <div className="text-sm leading-6 text-gray-600">{step.description}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Mẹo: nên ghi âm ở nơi yên tĩnh, đưa micro lại gần miệng và tránh tiếng ồn xung quanh để bản ghi rõ hơn.
+            </div>
+          </div>
+        </Modal>
         {/* Header */}
         <div className="space-y-2 py-2">
           {/* Exit Button */}
-          <div className="flex justify-end mb-1">
+          <div className="flex justify-between items-center mb-1 gap-3">
+            <Button
+              type="default"
+              icon={<QuestionCircleOutlined />}
+              onClick={handleOpenGuide}
+              className="h-9 rounded-xl border-blue-200 text-blue-600 hover:!border-blue-400 hover:!text-blue-700 font-medium shadow-sm"
+            >
+              Hướng dẫn
+            </Button>
             <button
               onClick={handleExit}
               className="flex items-center gap-2 px-3 py-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 border border-gray-200 hover:border-red-300 text-sm font-medium"
