@@ -279,7 +279,7 @@ const Dashboard: React.FC = () => {
                       </div>
                     }
                     className="shadow-sm rounded-xl border-gray-100"
-                    bodyStyle={{ padding: '12px' }}
+                    styles={{ body: { padding: '12px' } }}
                   >
                     <ResponsiveContainer width="100%" height={380}>
                       <BarChart data={barChartData} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
@@ -307,7 +307,7 @@ const Dashboard: React.FC = () => {
                       </div>
                     }
                     className="shadow-sm rounded-xl border-gray-100"
-                    bodyStyle={{ padding: '12px' }}
+                    styles={{ body: { padding: '12px' } }}
                   >
                     <ResponsiveContainer width="100%" height={380}>
                       <PieChart>

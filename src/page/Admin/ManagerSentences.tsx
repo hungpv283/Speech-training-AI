@@ -13,7 +13,7 @@ const ManagerSentences: React.FC = () => {
   const [loadingSentences, setLoadingSentences] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingSentence, setEditingSentence] = useState<Sentence | null>(null);
-  const [statusFilter, setStatusFilter] = useState<number | null>(null);
+  const [statusFilter, setStatusFilter] = useState<number | undefined>(undefined);
   const [downloading, setDownloading] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -34,15 +34,19 @@ const ManagerSentences: React.FC = () => {
     fetchSentences(page, pageSize, statusFilter);
   }, [page, pageSize, statusFilter]);
 
-  const fetchSentences = async (pageParam: number, limitParam: number, status?: number | null) => {
+  const fetchSentences = async (pageParam: number, limitParam: number, status?: number) => {
     setLoadingSentences(true);
     try {
       const res = await getSentencesWithMeta({ 
         page: pageParam, 
         limit: limitParam,
-        status: status !== null && status !== undefined ? status : undefined
+        status: status !== undefined ? status : undefined
       });
-      setSentences(res.data);
+      const mapped = res.data.map((item, index) => ({
+        ...item,
+        key: item.SentenceID && item.SentenceID !== '' ? `${item.SentenceID}-${index}` : `sentence-${index}`
+      }));
+      setSentences(mapped);
       setTotalSentencesCount(res.totalCount ?? res.data.length);
 
       // Lấy meta từ API response
@@ -465,7 +469,7 @@ const ManagerSentences: React.FC = () => {
                       value={statusFilter}
                       onChange={setStatusFilter}
                       options={[
-                        { label: 'Tất cả', value: null },
+                        { label: 'Tất cả', value: undefined },
                         { label: 'Chờ duyệt', value: 0 },
                         { label: 'Đã duyệt', value: 1 },
                         { label: 'Đã thu âm', value: 2 },
@@ -525,7 +529,6 @@ const ManagerSentences: React.FC = () => {
                 <Table
                   columns={sentenceColumns}
                   dataSource={sentences}
-                  rowKey="SentenceID"
                   pagination={{
                     current: page,
                     pageSize,

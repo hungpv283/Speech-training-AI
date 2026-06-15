@@ -13,6 +13,8 @@ export interface Sentence {
   domain?: string | null;
 }
 
+let tempIdCounter = 0;
+
 // Map BE response sang format chuẩn FE
 function mapSentence(raw: any): Sentence {
   const csTranscript = raw.csTranscript || null;
@@ -21,7 +23,7 @@ function mapSentence(raw: any): Sentence {
   const legacyPlainText = raw.PlainText || null;
 
   return {
-    SentenceID: raw.SentenceID || raw._id || '',
+    SentenceID: raw.SentenceID || raw._id || `temp-id-${++tempIdCounter}`,
     Content: viEquivalent || legacyContent || csTranscript || '',
     csTranscript,
     viEquivalent,
@@ -115,13 +117,13 @@ export const getSentencesWithMeta = async (
     // If backend already returns the paginated shape
     if (data && Array.isArray(data.data)) {
       return {
+        ...data,
         count: data.count ?? data.data.length,
         totalCount:
           pagination.totalCount ?? data.totalCount ?? data.count ?? data.data.length,
         totalPages: pagination.totalPages ?? data.totalPages ?? 1,
         currentPage: pagination.currentPage ?? data.currentPage ?? params?.page ?? 1,
         data: data.data.map(mapSentence),
-        ...data,
       };
     }
 
