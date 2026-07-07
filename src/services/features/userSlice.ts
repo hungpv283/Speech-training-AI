@@ -25,8 +25,13 @@ export interface User {
   SentencesDone?: Array<{
     SentenceID: string;
     Content: string;
+    PlainText?: string | null;
+    AudioPlaintext?: string | null;
+    AudioContent?: string | null;
     AudioUrl?: string;
     Duration?: number;
+    DurationPlaintext?: number;
+    DurationContent?: number;
     RecordedAt?: string;
     IsApproved?: number | boolean | null;
   }>;
@@ -194,7 +199,7 @@ export const fetchUsers = createAsyncThunk<
   if (toDate) queryParams.toDate = toDate;
   if (email) queryParams.email = email;
 
-  const response = await axiosInstance.get("users-new", {
+  const response = await axiosInstance.get("recordings-new-make/persons-with-recordings", {
     params: queryParams,
   });
   const data = response.data;
@@ -220,16 +225,44 @@ export const fetchUsers = createAsyncThunk<
       CreatedAt?: string;
       createdAt?: string;
       TotalRecordings?: number;
+      recordingCount?: number;
+      approvedCount?: number;
+      totalDurationSeconds?: number;
       TotalRecordingDuration?: number;
       TotalSentenceContributions?: number;
       ApprovedRecordings?: number;
       ApprovedRecordingsCount?: number;
       TotalApprovedRecordingDuration?: number;
+      recordings?: Array<{
+        RecordingID?: string;
+        SentenceID: string;
+        csTranscript?: string | null;
+        viEquivalent?: string | null;
+        Content?: string;
+        Duration?: number | null;
+        durationPlaintext?: number | null;
+        durationContent?: number | null;
+        RecordedAt?: string;
+        recordedAt?: string;
+        AudioUrl?: string;
+        AudioPlaintext?: string | null;
+        AudioContent?: string | null;
+        isApproved?: number | boolean | null;
+        IsApproved?: number | boolean | null;
+      }>;
       Recordings?: Array<{ SentenceID: string; Content: string; Duration?: number | null; RecordedAt?: string; AudioUrl?: string; IsApproved?: number | boolean | null }>;
       SentenceContributions?: Array<{ SentenceID: string; Content: string; Status: number; CreatedAt: string }>;
       SentencesDone?: Array<{ SentenceID: string; Content: string }>;
       CreatedSentences?: Array<{ SentenceID: string; Content: string; Status: number; CreatedAt: string }>;
     };
+    const recordings = (rawItem.recordings ?? rawItem.Recordings ?? []) as Array<any>;
+    const totalDuration =
+      rawItem.totalDurationSeconds ??
+      rawItem.TotalRecordingDuration ??
+      recordings.reduce((sum, r) => {
+        return sum + Number(r.Duration ?? 0) + Number(r.durationPlaintext ?? 0) + Number(r.durationContent ?? 0);
+      }, 0);
+
     return {
       PersonID: rawItem.PersonID ?? rawItem.personId ?? rawItem._id ?? '',
       Email: rawItem.Email ?? rawItem.email ?? '',
@@ -237,22 +270,30 @@ export const fetchUsers = createAsyncThunk<
       Gender: rawItem.Gender ?? rawItem.gender ?? '',
       Role: rawItem.Role ?? rawItem.role,
       CreatedAt: rawItem.CreatedAt ?? rawItem.createdAt ?? '',
-      TotalRecordingDuration: rawItem.TotalRecordingDuration,
-      TotalSentencesDone: rawItem.TotalRecordings, // Map TotalRecordings -> TotalSentencesDone
+      TotalRecordingDuration: totalDuration,
+      TotalSentencesDone: rawItem.recordingCount ?? rawItem.TotalRecordings ?? recordings.length,
       ApprovedRecordingsCount:
         rawItem.ApprovedRecordingsCount ??
         rawItem.ApprovedRecordings ??
+        rawItem.approvedCount ??
         undefined,
-      TotalApprovedRecordingDuration: rawItem.TotalApprovedRecordingDuration,
-      TotalContributedByUser: rawItem.TotalSentenceContributions, // Map TotalSentenceContributions -> TotalContributedByUser
+      TotalApprovedRecordingDuration: rawItem.TotalApprovedRecordingDuration ?? totalDuration,
+      TotalContributedByUser: rawItem.TotalSentenceContributions,
       // Map Recordings -> SentencesDone (câu đã làm/đã ghi âm)
-      SentencesDone: rawItem.Recordings?.map((r) => ({
+      SentencesDone: recordings.map((r) => ({
         SentenceID: r.SentenceID,
-        Content: r.Content,
+        Content: r.viEquivalent ?? r.Content ?? r.csTranscript ?? '',
+        PlainText: r.csTranscript ?? null,
         AudioUrl: r.AudioUrl,
-        Duration: r.Duration ?? undefined,
-        RecordedAt: r.RecordedAt,
-        IsApproved: r.IsApproved,
+        AudioPlaintext: r.AudioPlaintext ?? null,
+        AudioContent: r.AudioContent ?? null,
+        Duration:
+          r.Duration ??
+          ((Number(r.durationPlaintext ?? 0) + Number(r.durationContent ?? 0)) || undefined),
+        DurationPlaintext: r.durationPlaintext ?? undefined,
+        DurationContent: r.durationContent ?? undefined,
+        RecordedAt: r.RecordedAt ?? r.recordedAt,
+        IsApproved: r.IsApproved ?? r.isApproved,
       })) ?? rawItem.SentencesDone ?? [],
       // Map SentenceContributions -> CreatedSentences (câu đóng góp)
       CreatedSentences: rawItem.SentenceContributions?.map((s) => ({
@@ -275,7 +316,9 @@ export const fetchUsers = createAsyncThunk<
     totalMale: (data as { totalMale?: number })?.totalMale ?? 0,
     totalFemale: (data as { totalFemale?: number })?.totalFemale ?? 0,
     totalCompletedSentences:
-      (data as { totalCompletedSentences?: number })?.totalCompletedSentences ?? 0,
+      (data as { totalCompletedSentences?: number; totalRecordingCount?: number })?.totalCompletedSentences ??
+      (data as { totalRecordingCount?: number })?.totalRecordingCount ??
+      0,
   };
 });
 

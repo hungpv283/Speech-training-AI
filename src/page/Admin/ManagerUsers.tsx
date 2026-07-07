@@ -28,7 +28,19 @@ const ManagerUsers: React.FC = () => {
   const [loadingTopRecorders, setLoadingTopRecorders] = useState(false);
   const [downloadingRecordings, setDownloadingRecordings] = useState(false);
   const [sentencesModalVisible, setSentencesModalVisible] = useState(false);
-  const [selectedUserSentences, setSelectedUserSentences] = useState<Array<{ SentenceID: string; Content: string; AudioUrl?: string; Duration?: number; RecordedAt?: string }>>([]);
+  const [selectedUserSentences, setSelectedUserSentences] = useState<Array<{
+    SentenceID: string;
+    Content: string;
+    PlainText?: string | null;
+    AudioUrl?: string;
+    AudioPlaintext?: string | null;
+    AudioContent?: string | null;
+    Duration?: number;
+    DurationPlaintext?: number;
+    DurationContent?: number;
+    RecordedAt?: string;
+    IsApproved?: number | boolean | null;
+  }>>([]);
   const [selectedUserName, setSelectedUserName] = useState('');
   const [sentencesModalPage, setSentencesModalPage] = useState(1);
   const [sentencesModalPageSize] = useState(10);
@@ -178,7 +190,19 @@ const ManagerUsers: React.FC = () => {
       message.error(errMessage);
     }
   };
-  const handleShowSentences = (userEmail: string, sentences?: Array<{ SentenceID: string; Content: string; AudioUrl?: string; Duration?: number; RecordedAt?: string }>) => {
+  const handleShowSentences = (userEmail: string, sentences?: Array<{
+    SentenceID: string;
+    Content: string;
+    PlainText?: string | null;
+    AudioUrl?: string;
+    AudioPlaintext?: string | null;
+    AudioContent?: string | null;
+    Duration?: number;
+    DurationPlaintext?: number;
+    DurationContent?: number;
+    RecordedAt?: string;
+    IsApproved?: number | boolean | null;
+  }>) => {
     setSelectedUserName(userEmail);
     setSelectedUserSentences(sentences || []);
     setSentencesModalPage(1); // Reset về trang 1 khi mở modal
@@ -734,8 +758,19 @@ const ManagerUsers: React.FC = () => {
                         <span className="text-blue-600 font-semibold text-sm">{(sentencesModalPage - 1) * sentencesModalPageSize + index + 1}</span>
                       </div>
                       <div className="flex-1">
-                        <p className="text-gray-900 font-medium mb-2">{sentence.Content}</p>
+                        <p className="text-gray-900 font-medium mb-1">{sentence.Content || '-'}</p>
+                        {sentence.PlainText && sentence.PlainText !== sentence.Content && (
+                          <p className="text-gray-600 text-sm mb-2">{sentence.PlainText}</p>
+                        )}
                         <div className="space-y-2">
+                          {sentence.IsApproved !== undefined && sentence.IsApproved !== null && (
+                            <Tag
+                              color={sentence.IsApproved === 1 || sentence.IsApproved === true ? 'green' : sentence.IsApproved === 2 ? 'red' : 'blue'}
+                              className="text-xs"
+                            >
+                              {sentence.IsApproved === 1 || sentence.IsApproved === true ? 'ÄĂ£ duyá»‡t' : sentence.IsApproved === 2 ? 'Tá»« chá»‘i' : 'Chá» duyá»‡t'}
+                            </Tag>
+                          )}
                           {sentence.RecordedAt && (
                             <p className="text-xs text-gray-400">
                               Ghi âm: {new Date(sentence.RecordedAt).toLocaleString('vi-VN')}
@@ -745,6 +780,28 @@ const ManagerUsers: React.FC = () => {
                             <p className="text-xs text-gray-400">
                               Thời lượng: {sentence.Duration.toFixed(2)}s
                             </p>
+                          )}
+                          {sentence.AudioPlaintext && (
+                            <div className="mt-2">
+                              <Text className="text-xs text-gray-500 block mb-1">PlainText</Text>
+                              <audio controls className="w-full" style={{ maxWidth: '100%' }}>
+                                <source src={sentence.AudioPlaintext} type="audio/webm" />
+                                <source src={sentence.AudioPlaintext} type="audio/mpeg" />
+                                <source src={sentence.AudioPlaintext} type="audio/wav" />
+                                TrĂ¬nh duyá»‡t cá»§a báº¡n khĂ´ng há»— trá»£ phĂ¡t audio.
+                              </audio>
+                            </div>
+                          )}
+                          {sentence.AudioContent && (
+                            <div className="mt-2">
+                              <Text className="text-xs text-gray-500 block mb-1">Content</Text>
+                              <audio controls className="w-full" style={{ maxWidth: '100%' }}>
+                                <source src={sentence.AudioContent} type="audio/webm" />
+                                <source src={sentence.AudioContent} type="audio/mpeg" />
+                                <source src={sentence.AudioContent} type="audio/wav" />
+                                TrĂ¬nh duyá»‡t cá»§a báº¡n khĂ´ng há»— trá»£ phĂ¡t audio.
+                              </audio>
+                            </div>
                           )}
                           {sentence.AudioUrl && (
                             <div className="mt-2">
