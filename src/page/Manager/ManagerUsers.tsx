@@ -34,6 +34,8 @@ const ManagerUsers: React.FC = () => {
   
   // Force re-render when pageSize changes
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const getUserEmail = (user: { Email?: string; email?: string }) => user.Email || user.email || '';
   const [downloadingRecordings, setDownloadingRecordings] = useState(false);
   const [sentencesModalVisible, setSentencesModalVisible] = useState(false);
   const [selectedUserSentences, setSelectedUserSentences] = useState<Array<{ SentenceID: string; Content: string; AudioUrl?: string; Duration?: number; RecordedAt?: string }>>([]);
@@ -106,7 +108,7 @@ const ManagerUsers: React.FC = () => {
     }
 
     const selectedUsers = users.filter(u => selectedUserIds.includes(u.PersonID));
-    const emails = selectedUsers.map(u => u.Email);
+    const emails = selectedUsers.map(getUserEmail);
     const fromDate = dateRange[0] ? dateRange[0].toISOString() : undefined;
     const toDate = dateRange[1] ? dateRange[1].toISOString() : undefined;
 
@@ -202,10 +204,12 @@ const ManagerUsers: React.FC = () => {
 
     {
       title: 'Email',
-      dataIndex: 'Email',
-      key: 'Email',
+      dataIndex: 'email',
+      key: 'email',
       width: 200,
-      render: (text: string) => <span className="font-medium text-gray-900">{text}</span>,
+      render: (_: string, record: typeof users[number] & { email?: string }) => (
+        <span className="font-medium text-gray-900">{getUserEmail(record)}</span>
+      ),
     },
     {
       title: 'Giới tính',
@@ -229,7 +233,7 @@ const ManagerUsers: React.FC = () => {
         <Tag
           color="blue"
           className="font-medium cursor-pointer hover:opacity-80"
-          onClick={() => handleShowSentences(record.Email, record.SentencesDone)}
+          onClick={() => handleShowSentences(getUserEmail(record), record.SentencesDone)}
         >
           {total || 0} câu
         </Tag>
@@ -259,7 +263,7 @@ const ManagerUsers: React.FC = () => {
         <Tag
           color="purple"
           className="font-medium cursor-pointer hover:opacity-80"
-          onClick={() => handleShowContributedSentences(record.Email, record.CreatedSentences)}
+          onClick={() => handleShowContributedSentences(getUserEmail(record), record.CreatedSentences)}
         >
           {total || 0} câu
         </Tag>
@@ -284,8 +288,8 @@ const ManagerUsers: React.FC = () => {
         <Space>
           <Popconfirm
             title="Xóa người dùng"
-            description={`Bạn có chắc chắn muốn xóa người dùng "${record.Email}"?`}
-            onConfirm={() => handleDeleteUser(record.PersonID, record.Email)}
+            description={`Bạn có chắc chắn muốn xóa người dùng "${getUserEmail(record)}"?`}
+            onConfirm={() => handleDeleteUser(record.PersonID, getUserEmail(record))}
             okText="Xóa"
             cancelText="Hủy"
             okButtonProps={{ danger: true, loading: deletingUser }}

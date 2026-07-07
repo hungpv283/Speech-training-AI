@@ -18,6 +18,7 @@ export interface Recording {
 export interface User {
   PersonID: string;
   Email: string;
+  email?: string;
   Gender: string;
   Role?: string;
   CreatedAt: string;
@@ -27,6 +28,7 @@ export interface User {
     AudioUrl?: string;
     Duration?: number;
     RecordedAt?: string;
+    IsApproved?: number | boolean | null;
   }>;
   TotalRecordingDuration?: number;
   TotalSentencesDone?: number;
@@ -206,28 +208,35 @@ export const fetchUsers = createAsyncThunk<
   // Map API fields to User interface fields
   const items: User[] = rawDataArray.map((item: unknown) => {
     const rawItem = item as {
+      _id?: string;
       PersonID?: string;
+      personId?: string;
       Email?: string;
+      email?: string;
       Gender?: string;
+      gender?: string;
       Role?: string;
+      role?: string;
       CreatedAt?: string;
+      createdAt?: string;
       TotalRecordings?: number;
       TotalRecordingDuration?: number;
       TotalSentenceContributions?: number;
       ApprovedRecordings?: number;
       ApprovedRecordingsCount?: number;
       TotalApprovedRecordingDuration?: number;
-      Recordings?: Array<{ SentenceID: string; Content: string; Duration?: number; RecordedAt?: string; AudioUrl?: string }>;
+      Recordings?: Array<{ SentenceID: string; Content: string; Duration?: number | null; RecordedAt?: string; AudioUrl?: string; IsApproved?: number | boolean | null }>;
       SentenceContributions?: Array<{ SentenceID: string; Content: string; Status: number; CreatedAt: string }>;
       SentencesDone?: Array<{ SentenceID: string; Content: string }>;
       CreatedSentences?: Array<{ SentenceID: string; Content: string; Status: number; CreatedAt: string }>;
     };
     return {
-      PersonID: rawItem.PersonID ?? '',
-      Email: rawItem.Email ?? '',
-      Gender: rawItem.Gender ?? '',
-      Role: rawItem.Role,
-      CreatedAt: rawItem.CreatedAt ?? '',
+      PersonID: rawItem.PersonID ?? rawItem.personId ?? rawItem._id ?? '',
+      Email: rawItem.Email ?? rawItem.email ?? '',
+      email: rawItem.email ?? rawItem.Email ?? '',
+      Gender: rawItem.Gender ?? rawItem.gender ?? '',
+      Role: rawItem.Role ?? rawItem.role,
+      CreatedAt: rawItem.CreatedAt ?? rawItem.createdAt ?? '',
       TotalRecordingDuration: rawItem.TotalRecordingDuration,
       TotalSentencesDone: rawItem.TotalRecordings, // Map TotalRecordings -> TotalSentencesDone
       ApprovedRecordingsCount:
@@ -241,8 +250,9 @@ export const fetchUsers = createAsyncThunk<
         SentenceID: r.SentenceID,
         Content: r.Content,
         AudioUrl: r.AudioUrl,
-        Duration: r.Duration,
+        Duration: r.Duration ?? undefined,
         RecordedAt: r.RecordedAt,
+        IsApproved: r.IsApproved,
       })) ?? rawItem.SentencesDone ?? [],
       // Map SentenceContributions -> CreatedSentences (câu đóng góp)
       CreatedSentences: rawItem.SentenceContributions?.map((s) => ({
